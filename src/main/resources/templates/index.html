@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="bg" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Складове</title>
+</head>
+<body>
+<h1>Система за складове</h1>
+<p>Здравей, <span sec:authentication="name"></span>!</p>
+<ul>
+    <li sec:authorize="hasRole('ADMIN')"><a href="/admin">Администрация</a></li>
+    <li sec:authorize="hasRole('OWNER')"><a href="/owner">Моите складове</a></li>
+    <li sec:authorize="hasRole('AGENT')"><a href="/agent">Наеми</a></li>
+</ul>
+<form th:action="@{/logout}" method="post">
+    <button type="submit">Изход</button>
+</form>
+</body>
+</html>
