@@ -15,13 +15,13 @@ import java.util.Set;
  */
 @Entity
 public class Warehouse {
-
+// ssdsdsd
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @NotBlank
-    private String name;
+    private String neshto;
 
     @NotBlank
     private String address;
