@@ -2,13 +2,14 @@
 
 Диаграмите са написани на [Mermaid](https://mermaid.js.org) и се показват директно в GitHub
 и в IntelliJ (Markdown preview). Всяка е и в отделен `.mmd` файл, а `.png` картинките са за документацията.
+Диаграмите отразяват кода в `src/main/java/bg/skladove` (entity-та, enum-и, `RentalService`).
 
 | Файл | Какво показва | Изискване от заданието |
 |---|---|---|
 | `use-case.mmd` | Кой потребител какво може да прави | 2.d.ii UML – Use Case |
 | `er-chen.mmd` | Концептуален модел на базата | 2.d.iii ER диаграма (модел на Чен) |
 | `class-diagram.mmd` | JPA entity класовете и връзките им | 2.d.ii UML – Class Diagram |
-| `sequence-rental.mmd` | Как минава заявката за отдаване под наем | 2.d.ii UML – Sequence diagram |
+| `sequence-rental.mmd` | Заявка за наем и одобрение от собственика | 2.d.ii UML – Sequence diagram |
 | `er-relational.mmd` | Таблиците в PostgreSQL с ключовете | 2.e.i Релационна схема |
 
 Картинките се генерират с Mermaid CLI: `npx -p @mermaid-js/mermaid-cli mmdc -i er-chen.mmd -o er-chen.png -s 2 -b white`
@@ -39,7 +40,8 @@ flowchart LR
     subgraph G2["Складове и наеми"]
       uc5([Добавяне / редакция на склад])
       uc6([Избор на складови агенти])
-      uc7([Отдаване под наем<br/>формуляр за наем])
+      uc7([Заявка за наем<br/>формуляр: наемател, период, цена])
+      uc15([Одобряване / отхвърляне<br/>на заявка за наем])
     end
     subgraph G3["Справки по произволен период"]
       uc8([Складове на собственик])
@@ -62,32 +64,33 @@ flowchart LR
   %% Администратор (линии 0–1)
   ADMIN --- uc1
   ADMIN --- uc2
-  %% Собственик (линии 2–9)
+  %% Собственик (линии 2–10)
   OWNER --- uc3
   OWNER --- uc4
   OWNER --- uc5
   OWNER --- uc6
+  OWNER --- uc15
   OWNER --- uc8
   OWNER --- uc9
   OWNER --- uc12
   OWNER --- uc13
-  %% Складов агент (линии 10–15)
+  %% Складов агент (линии 11–16)
   uc4 --- AGENT
   uc7 --- AGENT
   uc10 --- AGENT
   uc11 --- AGENT
   uc12 --- AGENT
   uc13 --- AGENT
-  %% Система (линия 16)
+  %% Система (линия 17)
   uc14 --- SCHED
-  %% extend / include (линии 17–18)
+  %% extend / include (линии 18–19)
   uc6 -. "«extend»" .-> uc5
   uc14 -. "«include»" .-> uc13
 
   linkStyle 0,1 stroke:#C00000,stroke-width:2.5px
-  linkStyle 2,3,4,5,6,7,8,9 stroke:#2F5597,stroke-width:2.5px
-  linkStyle 10,11,12,13,14,15 stroke:#548235,stroke-width:2.5px
-  linkStyle 16 stroke:#7F7F7F,stroke-width:2.5px
+  linkStyle 2,3,4,5,6,7,8,9,10 stroke:#2F5597,stroke-width:2.5px
+  linkStyle 11,12,13,14,15,16 stroke:#548235,stroke-width:2.5px
+  linkStyle 17 stroke:#7F7F7F,stroke-width:2.5px
 
   classDef admin fill:#FDE9E9,stroke:#C00000,stroke-width:2px,color:#C00000,font-weight:bold
   classDef owner fill:#DEEBF7,stroke:#2F5597,stroke-width:2px,color:#2F5597,font-weight:bold
@@ -98,7 +101,7 @@ flowchart LR
   class OWNER owner
   class AGENT agent
   class SCHED sched
-  class uc1,uc2,uc3,uc4,uc5,uc6,uc7,uc8,uc9,uc10,uc11,uc12,uc13,uc14 uc
+  class uc1,uc2,uc3,uc4,uc5,uc6,uc7,uc8,uc9,uc10,uc11,uc12,uc13,uc14,uc15 uc
   style SYS fill:#FFFFFF,stroke:#1F3864,stroke-width:2px
   style G1 fill:#FBE5D6,stroke:#F4B183
   style G2 fill:#DEEBF7,stroke:#9DC3E6
@@ -122,27 +125,22 @@ flowchart TB
   USER[ПОТРЕБИТЕЛ]
   WH[СКЛАД]
   RC[ДОГОВОР ЗА НАЕМ]
-  RT[РЕЙТИНГ]
   NT[ИЗВЕСТИЕ]
 
   %% ---------- Връзки ----------
   owns{притежава}
   serves{обслужва}
-  signs{сключва}
+  creates{създава заявка}
+  decides{одобрява /<br/>отхвърля}
   covers{отнася се за}
-  rated{получава оценка}
-  gives{дава оценка}
   receives{получава}
-  about{относно}
 
   USER ---|1| owns ---|N| WH
   USER ---|M| serves ---|N| WH
-  USER ---|1| signs ---|N| RC
+  USER ---|1| creates ---|N| RC
+  USER ---|1| decides ---|N| RC
   WH ---|1| covers ---|N| RC
-  USER ---|1| rated ---|N| RT
-  USER ---|1| gives ---|N| RT
   USER ---|1| receives ---|N| NT
-  RC ---|1| about ---|N| NT
 
   %% ---------- Атрибути ----------
   u1([<u>id</u>]) --- USER
@@ -153,27 +151,28 @@ flowchart TB
   u6([телефон]) --- USER
   u7([роля]) --- USER
   u8([хонорар]) --- USER
+  u9([рейтинг]) --- USER
 
   WH --- w1([<u>id</u>])
-  WH --- w2([адрес])
-  WH --- w3([размери])
-  WH --- w4([климат])
-  WH --- w5([вид стока])
-  WH --- w6([категория])
-  WH --- w7([цена / месец])
-  WH --- w8([статус])
+  WH --- w2([име])
+  WH --- w3([адрес])
+  WH --- w4([площ])
+  WH --- w5([височина])
+  WH --- w6([климатични условия])
+  WH --- w7([вид стока])
+  WH --- w8([категория])
+  WH --- w9([цена / месец])
+  WH --- w10([статус])
 
   RC --- c1([<u>id</u>])
-  RC --- c2([наемател])
+  RC --- c2([наемател<br/>име, телефон, имейл])
   RC --- c3([от дата])
   RC --- c4([до дата])
   RC --- c5([цена])
   RC --- c6([статус])
-
-  RT --- r1([<u>id</u>])
-  RT --- r2([оценка 1–5])
-  RT --- r3([коментар])
-  RT --- r4([дата])
+  RC --- c7([дата на заявка])
+  RC --- c8([дата на решение])
+  RC --- c9([бележка])
 
   NT --- n1([<u>id</u>])
   NT --- n2([тип])
@@ -186,15 +185,15 @@ flowchart TB
   classDef rel fill:#FFE699,stroke:#BF9000,stroke-width:1.5px,color:#000
   classDef attr fill:#F2F2F2,stroke:#7F7F7F,color:#000
   classDef key fill:#FFF2CC,stroke:#BF9000,stroke-width:2px,color:#000,font-weight:bold
-  class USER,WH,RC,RT,NT entity
-  class owns,serves,signs,covers,rated,gives,receives,about rel
-  class u2,u3,u4,u5,u6,u7,u8,w2,w3,w4,w5,w6,w7,w8,c2,c3,c4,c5,c6,r2,r3,r4,n2,n3,n4,n5 attr
-  class u1,w1,c1,r1,n1 key
+  class USER,WH,RC,NT entity
+  class owns,serves,creates,decides,covers,receives rel
+  class u2,u3,u4,u5,u6,u7,u8,u9,w2,w3,w4,w5,w6,w7,w8,w9,w10,c2,c3,c4,c5,c6,c7,c8,c9,n2,n3,n4,n5 attr
+  class u1,w1,c1,n1 key
 ```
 
 ## 3. Class диаграма
-Синьо = модули на Човек A (потребители, рейтинг, известия), зелено = модули на Човек B (складове, наеми),
-жълто = enum. `-` = private поле, `+` = public метод.
+Синьо = модули на Човек A (потребители, известия), зелено = модули на Човек B (складове, наеми),
+жълто = enum. `-` = private поле, `#` = protected метод.
 
 ```mermaid
 ---
@@ -203,66 +202,59 @@ title: Class диаграма — домейн модел (JPA entity-та)
 classDiagram
   direction TB
 
-  class User {
+  class AppUser {
     <<entity>>
     -Long id
     -String username
-    -String passwordHash
+    -String password
     -String fullName
     -String email
     -String phone
     -Role role
     -BigDecimal fee
-    +averageRating() Double
-  }
-  class Rating {
-    <<entity>>
-    -Long id
-    -int score
-    -String comment
-    -LocalDateTime createdAt
-    -User agent
-    -User ratedBy
+    -Double rating
   }
   class Notification {
     <<entity>>
     -Long id
-    -NotificationType type
+    -AppUser recipient
+    -Type type
     -String message
     -boolean read
     -LocalDateTime createdAt
-    -User recipient
-    -RentalContract contract
   }
   class Warehouse {
     <<entity>>
     -Long id
+    -String name
     -String address
-    -Double length
-    -Double width
+    -Double area
     -Double height
-    -ClimateCondition climate
+    -String climateConditions
     -String goodsType
-    -WarehouseCategory category
+    -String category
     -BigDecimal monthlyPrice
     -WarehouseStatus status
-    -User owner
-    -Set~User~ agents
-    +area() Double
+    -AppUser owner
+    -Set~AppUser~ agents
   }
   class RentalContract {
     <<entity>>
     -Long id
+    -Warehouse warehouse
+    -AppUser agent
+    -AppUser decidedBy
     -String tenantName
     -String tenantPhone
     -String tenantEmail
     -LocalDate startDate
     -LocalDate endDate
     -BigDecimal price
-    -ContractStatus status
-    -Warehouse warehouse
-    -User agent
-    +isExpiringWithin(int days) boolean
+    -RentalStatus status
+    -LocalDate createdAt
+    -LocalDateTime decidedAt
+    -String decisionNote
+    #onCreate() void
   }
 
   class Role {
@@ -275,200 +267,197 @@ classDiagram
     <<enumeration>>
     AVAILABLE
     RENTED
+    MAINTENANCE
     INACTIVE
   }
-  class ClimateCondition {
+  class RentalStatus {
     <<enumeration>>
-    DRY
-    HEATED
-    REFRIGERATED
-    FROZEN
-  }
-  class WarehouseCategory {
-    <<enumeration>>
-    A
-    B
-    C
-  }
-  class ContractStatus {
-    <<enumeration>>
-    PENDING
+    PENDING_OWNER_APPROVAL
     ACTIVE
-    EXPIRED
+    REJECTED
+    COMPLETED
     CANCELLED
   }
-  class NotificationType {
+  class Type {
     <<enumeration>>
-    NEW_REQUEST
+    NEW_RENTAL_REQUEST
     WAREHOUSE_RENTED
     CONTRACT_EXPIRING
   }
 
-  User "1" -- "0..*" Warehouse : притежава
-  User "0..*" -- "0..*" Warehouse : обслужва (агенти)
+  AppUser "1" -- "0..*" Warehouse : притежава (owner)
+  AppUser "0..*" -- "0..*" Warehouse : обслужва (agents)
   Warehouse "1" -- "0..*" RentalContract : договори
-  User "1" -- "0..*" RentalContract : сключва (агент)
-  User "1" -- "0..*" Rating : оценка за агент
-  User "1" -- "0..*" Rating : дадена от собственик
-  User "1" -- "0..*" Notification : получава
-  RentalContract "0..1" -- "0..*" Notification : относно
+  AppUser "1" -- "0..*" RentalContract : създава заявка (agent)
+  AppUser "0..1" -- "0..*" RentalContract : одобрява / отхвърля (decidedBy)
+  AppUser "1" -- "0..*" Notification : получава (recipient)
 
-  User ..> Role
+  AppUser ..> Role
   Warehouse ..> WarehouseStatus
-  Warehouse ..> ClimateCondition
-  Warehouse ..> WarehouseCategory
-  RentalContract ..> ContractStatus
-  Notification ..> NotificationType
+  RentalContract ..> RentalStatus
+  Notification ..> Type : вложен enum Notification.Type
 
   %% синьо = модули на Човек A, зелено = модули на Човек B, жълто = enum
-  style User fill:#DEEBF7,stroke:#2F5597,stroke-width:2px
-  style Rating fill:#DEEBF7,stroke:#2F5597,stroke-width:2px
+  style AppUser fill:#DEEBF7,stroke:#2F5597,stroke-width:2px
   style Notification fill:#DEEBF7,stroke:#2F5597,stroke-width:2px
   style Warehouse fill:#E2F0D9,stroke:#548235,stroke-width:2px
   style RentalContract fill:#E2F0D9,stroke:#548235,stroke-width:2px
   style Role fill:#FFF2CC,stroke:#BF9000
   style WarehouseStatus fill:#FFF2CC,stroke:#BF9000
-  style ClimateCondition fill:#FFF2CC,stroke:#BF9000
-  style WarehouseCategory fill:#FFF2CC,stroke:#BF9000
-  style ContractStatus fill:#FFF2CC,stroke:#BF9000
-  style NotificationType fill:#FFF2CC,stroke:#BF9000
+  style RentalStatus fill:#FFF2CC,stroke:#BF9000
+  style Type fill:#FFF2CC,stroke:#BF9000
 ```
 
-## 4. Sequence диаграма: отдаване на склад под наем
-Показва многослойната архитектура: Controller → Service → Repository → база данни.
+## 4. Sequence диаграма: заявка за наем и одобрение
+Показва многослойната архитектура (Controller → Service → Repository → база данни)
+и двете стъпки на наема: агентът създава заявка, собственикът я одобрява или отхвърля.
 
 ```mermaid
 ---
-title: Sequence диаграма — отдаване на склад под наем
+title: Sequence диаграма — заявка за наем и одобрение от собственика
 ---
 sequenceDiagram
   autonumber
-  actor A as Складов агент
-  participant UI as Браузър<br/>(Thymeleaf форма)
+  actor AG as Складов агент
+  actor OW as Собственик
   participant SEC as Spring Security
   participant C as RentalController
   participant S as RentalService
-  participant WR as WarehouseRepository
-  participant RR as RentalContractRepository
-  participant N as NotificationService
+  participant AV as WarehouseAvailabilityService
+  participant R as Repositories
   participant DB as PostgreSQL (Neon)
 
-  A->>UI: Попълва формуляр за наем<br/>(наемател, период, цена)
-  UI->>SEC: POST /rentals
-  SEC->>SEC: Проверка: влязъл ли е и има ли роля AGENT?
-  alt няма права
-    SEC-->>UI: 403 Forbidden
-  else има права
-    SEC->>C: create(form, текущ агент)
-    C->>C: @Valid — проверка на полетата
-    C->>S: rent(warehouseId, данни, агент)
-    S->>WR: findById(warehouseId)
-    WR->>DB: SELECT * FROM warehouses WHERE id = ?
-    DB-->>WR: склад
-    WR-->>S: Warehouse
-
-    alt складът е зает или агентът не е назначен за него
-      S-->>C: изключение (бизнес правило)
-      C-->>UI: формата отново със съобщение за грешка
-    else складът е свободен
-      S->>RR: save(new RentalContract(...))
-      RR->>DB: INSERT INTO rental_contracts ...
-      S->>S: warehouse.status = RENTED
-      S->>WR: save(warehouse)
-      WR->>DB: UPDATE warehouses SET status = 'RENTED'
-      S->>N: notifyOwner(WAREHOUSE_RENTED)
-      N->>DB: INSERT INTO notifications ...
-      S->>S: log.info("Склад X отдаден ...")  [Log4j]
-      S-->>C: RentalContract
-      C-->>UI: redirect към договора
-      UI-->>A: Потвърждение: „Складът е отдаден“
-    end
+  rect rgb(226, 240, 217)
+  Note over AG,DB: Част 1 — агентът създава заявка за наем
+  AG->>SEC: POST /agent/rentals (наемател, период, цена)
+  SEC->>SEC: Влязъл ли е и има ли роля AGENT?
+  SEC->>C: заявката е разрешена
+  C->>S: createRequest(warehouseId, agentId, данни)
+  S->>R: findById(склад), findById(агент)
+  R->>DB: SELECT ...
+  S->>S: Проверки: ролята е AGENT, агентът е назначен<br/>към склада, периодът и цената са валидни
+  S->>AV: isAvailable(склад, от, до)
+  AV->>R: findByWarehouseIdAndStatus(склад, ACTIVE)
+  R->>DB: SELECT ... FROM rental_contract
+  AV-->>S: true / false (има ли застъпване на периоди)
+  alt складът е зает за периода или проверка не минава
+    S-->>C: изключение със съобщение
+    C-->>AG: формата отново, с грешката
+  else всичко е наред
+    S->>R: save(договор със статус PENDING_OWNER_APPROVAL)
+    R->>DB: INSERT INTO rental_contract ...
+    C-->>AG: „Заявката е изпратена за одобрение“
   end
-  Note over S,DB: Всичко в rent() е в една @Transactional транзакция:<br/>при грешка нито договорът, нито статусът се записват.
+  end
+
+  rect rgb(222, 235, 247)
+  Note over OW,DB: Част 2 — собственикът одобрява или отхвърля
+  OW->>SEC: POST /owner/rentals/{id}/approve или /reject
+  SEC->>SEC: Влязъл ли е и има ли роля OWNER?
+  SEC->>C: заявката е разрешена
+  alt одобрява
+    C->>S: approveRequest(contractId, ownerId)
+    S->>S: Проверки: той е собственикът на склада,<br/>заявката още чака решение
+    S->>AV: isAvailable(...) — повторна проверка
+    S->>R: save(договор: ACTIVE, decidedBy, decidedAt)
+    S->>AV: synchronizeStatus(склад)
+    AV->>AV: Има ли активен договор днес? → RENTED, иначе AVAILABLE
+    S->>R: save(склад)
+    R->>DB: UPDATE rental_contract, UPDATE warehouse
+    C-->>OW: „Заявката е одобрена“
+  else отхвърля
+    C->>S: rejectRequest(contractId, ownerId, бележка)
+    S->>R: save(договор: REJECTED, бележка)
+    R->>DB: UPDATE rental_contract
+    C-->>OW: „Заявката е отхвърлена“
+  end
+  end
+
+  Note over S,DB: Всеки метод на RentalService е @Transactional:<br/>при грешка нищо не се записва наполовина.
 ```
 
 ## 5. Релационна схема
 `PK` = първичен ключ, `FK` = външен ключ, `UK` = уникална стойност.
-Връзката M:N между склад и агент става чрез свързващата таблица `warehouse_agents`.
+Връзката M:N между склад и агент става чрез свързващата таблица `warehouse_agent`.
 
 ```mermaid
 ---
 title: Релационна схема (таблици в PostgreSQL)
 ---
 erDiagram
-  users ||--o{ warehouses : "притежава (owner_id)"
-  users ||--o{ warehouse_agents : "агент"
-  warehouses ||--o{ warehouse_agents : "склад"
-  warehouses ||--o{ rental_contracts : "договори"
-  users ||--o{ rental_contracts : "сключва (agent_id)"
-  users ||--o{ ratings : "оценен (agent_id)"
-  users ||--o{ ratings : "оценява (rated_by_id)"
-  users ||--o{ notifications : "получава"
-  rental_contracts |o--o{ notifications : "относно"
+  app_user ||--o{ warehouse : "притежава (owner_id)"
+  app_user ||--o{ warehouse_agent : "агент"
+  warehouse ||--o{ warehouse_agent : "склад"
+  warehouse ||--o{ rental_contract : "договори"
+  app_user ||--o{ rental_contract : "създава (agent_id)"
+  app_user |o--o{ rental_contract : "решава (decided_by_id)"
+  app_user ||--o{ notification : "получава"
 
-  users {
+  app_user {
     bigint id PK
     varchar username UK "уникално"
-    varchar password_hash "BCrypt"
+    varchar password "BCrypt хеш"
     varchar full_name
     varchar email
     varchar phone
     varchar role "ADMIN / OWNER / AGENT"
     numeric fee "хонорар (само агент)"
+    float rating "среден рейтинг (само агент)"
   }
-  warehouses {
+  warehouse {
     bigint id PK
+    varchar name
     varchar address
-    double length
-    double width
-    double height
-    varchar climate "DRY / HEATED / ..."
+    float area "кв. м"
+    float height "м"
+    varchar climate_conditions
     varchar goods_type "вид стока"
-    varchar category "A / B / C"
+    varchar category
     numeric monthly_price
-    varchar status "AVAILABLE / RENTED / INACTIVE"
+    varchar status "AVAILABLE / RENTED / MAINTENANCE / INACTIVE"
     bigint owner_id FK
   }
-  warehouse_agents {
+  warehouse_agent {
     bigint warehouse_id PK,FK
     bigint agent_id PK,FK
   }
-  rental_contracts {
+  rental_contract {
     bigint id PK
+    bigint warehouse_id FK
+    bigint agent_id FK
+    bigint decided_by_id FK "собственик, NULL докато чака"
     varchar tenant_name
     varchar tenant_phone
     varchar tenant_email
     date start_date
     date end_date
     numeric price
-    varchar status "PENDING / ACTIVE / EXPIRED / CANCELLED"
-    bigint warehouse_id FK
-    bigint agent_id FK
+    varchar status "PENDING_OWNER_APPROVAL / ACTIVE / REJECTED / COMPLETED / CANCELLED"
+    date created_at
+    timestamp decided_at
+    varchar decision_note
   }
-  ratings {
+  notification {
     bigint id PK
-    int score "1–5"
-    varchar comment
-    timestamp created_at
-    bigint agent_id FK
-    bigint rated_by_id FK
-  }
-  notifications {
-    bigint id PK
-    varchar type "NEW_REQUEST / WAREHOUSE_RENTED / CONTRACT_EXPIRING"
-    varchar message
-    boolean is_read
-    timestamp created_at
     bigint recipient_id FK
-    bigint contract_id FK "може да е NULL"
+    varchar type "NEW_RENTAL_REQUEST / WAREHOUSE_RENTED / CONTRACT_EXPIRING"
+    varchar message
+    boolean read
+    timestamp created_at
   }
 ```
 
 ## Проектни решения
 
-- **Една таблица за всички потребители** с колона `role` (ADMIN, OWNER, AGENT). Входът и правата се правят
-  на едно място (Spring Security), а хонорарът (`fee`) се ползва само при агентите.
+- **Една таблица за всички потребители** (`app_user`) с колона `role` (ADMIN, OWNER, AGENT).
+  Входът и правата се правят на едно място (Spring Security). Хонорарът (`fee`) и средният рейтинг
+  (`rating`) се ползват само при агентите.
 - **Наемателят не е потребител на системата.** Той не влиза в нея, затова данните му се пазят в договора.
-- **Заявката за наем е договор със статус `PENDING`.** При одобрение става `ACTIVE`, след крайната дата `EXPIRED`.
+- **Наемът минава през одобрение.** Агентът създава заявка (`PENDING_OWNER_APPROVAL`), собственикът
+  я одобрява (`ACTIVE`) или отхвърля (`REJECTED`, с бележка). Кой и кога е решил се пази в
+  `decided_by_id` и `decided_at`.
+- **Свободен ли е складът се проверява по периоди**, а не само по статус: заявка се приема, само ако
+  периодът ѝ не се застъпва с активен договор (`WarehouseAvailabilityService.isAvailable`).
+  Статусът на склада (`RENTED` / `AVAILABLE`) се пресмята от активните договори (`synchronizeStatus`).
 - **Агентите на склад са M:N,** защото собственикът избира „един или списък“ агенти, а един агент работи с много складове.
-- **Известието за изтичащ договор** се създава автоматично по график (`@Scheduled`), затова в Use Case има актьор „Система“.
+- **Известието за изтичащ договор** ще се създава автоматично по график (`@Scheduled`), затова в Use Case има актьор „Система“.
