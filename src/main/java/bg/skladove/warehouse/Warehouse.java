@@ -19,11 +19,10 @@ public class Warehouse {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-//hey svetlio
 
 
     @NotBlank
-    private String namee;
+    private String name;
 
     @NotBlank
     private String address;
