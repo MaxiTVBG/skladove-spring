@@ -1,0 +1,135 @@
+---
+title: Class диаграма — домейн модел (JPA entity-та)
+---
+classDiagram
+  direction TB
+
+  class User {
+    <<entity>>
+    -Long id
+    -String username
+    -String passwordHash
+    -String fullName
+    -String email
+    -String phone
+    -Role role
+    -BigDecimal fee
+    +averageRating() Double
+  }
+  class Rating {
+    <<entity>>
+    -Long id
+    -int score
+    -String comment
+    -LocalDateTime createdAt
+    -User agent
+    -User ratedBy
+  }
+  class Notification {
+    <<entity>>
+    -Long id
+    -NotificationType type
+    -String message
+    -boolean read
+    -LocalDateTime createdAt
+    -User recipient
+    -RentalContract contract
+  }
+  class Warehouse {
+    <<entity>>
+    -Long id
+    -String address
+    -Double length
+    -Double width
+    -Double height
+    -ClimateCondition climate
+    -String goodsType
+    -WarehouseCategory category
+    -BigDecimal monthlyPrice
+    -WarehouseStatus status
+    -User owner
+    -Set~User~ agents
+    +area() Double
+  }
+  class RentalContract {
+    <<entity>>
+    -Long id
+    -String tenantName
+    -String tenantPhone
+    -String tenantEmail
+    -LocalDate startDate
+    -LocalDate endDate
+    -BigDecimal price
+    -ContractStatus status
+    -Warehouse warehouse
+    -User agent
+    +isExpiringWithin(int days) boolean
+  }
+
+  class Role {
+    <<enumeration>>
+    ADMIN
+    OWNER
+    AGENT
+  }
+  class WarehouseStatus {
+    <<enumeration>>
+    AVAILABLE
+    RENTED
+    INACTIVE
+  }
+  class ClimateCondition {
+    <<enumeration>>
+    DRY
+    HEATED
+    REFRIGERATED
+    FROZEN
+  }
+  class WarehouseCategory {
+    <<enumeration>>
+    A
+    B
+    C
+  }
+  class ContractStatus {
+    <<enumeration>>
+    PENDING
+    ACTIVE
+    EXPIRED
+    CANCELLED
+  }
+  class NotificationType {
+    <<enumeration>>
+    NEW_REQUEST
+    WAREHOUSE_RENTED
+    CONTRACT_EXPIRING
+  }
+
+  User "1" -- "0..*" Warehouse : притежава
+  User "0..*" -- "0..*" Warehouse : обслужва (агенти)
+  Warehouse "1" -- "0..*" RentalContract : договори
+  User "1" -- "0..*" RentalContract : сключва (агент)
+  User "1" -- "0..*" Rating : оценка за агент
+  User "1" -- "0..*" Rating : дадена от собственик
+  User "1" -- "0..*" Notification : получава
+  RentalContract "0..1" -- "0..*" Notification : относно
+
+  User ..> Role
+  Warehouse ..> WarehouseStatus
+  Warehouse ..> ClimateCondition
+  Warehouse ..> WarehouseCategory
+  RentalContract ..> ContractStatus
+  Notification ..> NotificationType
+
+  %% синьо = модули на Човек A, зелено = модули на Човек B, жълто = enum
+  style User fill:#DEEBF7,stroke:#2F5597,stroke-width:2px
+  style Rating fill:#DEEBF7,stroke:#2F5597,stroke-width:2px
+  style Notification fill:#DEEBF7,stroke:#2F5597,stroke-width:2px
+  style Warehouse fill:#E2F0D9,stroke:#548235,stroke-width:2px
+  style RentalContract fill:#E2F0D9,stroke:#548235,stroke-width:2px
+  style Role fill:#FFF2CC,stroke:#BF9000
+  style WarehouseStatus fill:#FFF2CC,stroke:#BF9000
+  style ClimateCondition fill:#FFF2CC,stroke:#BF9000
+  style WarehouseCategory fill:#FFF2CC,stroke:#BF9000
+  style ContractStatus fill:#FFF2CC,stroke:#BF9000
+  style NotificationType fill:#FFF2CC,stroke:#BF9000

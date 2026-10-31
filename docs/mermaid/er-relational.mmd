@@ -1,0 +1,70 @@
+---
+title: Релационна схема (таблици в PostgreSQL)
+---
+erDiagram
+  users ||--o{ warehouses : "притежава (owner_id)"
+  users ||--o{ warehouse_agents : "агент"
+  warehouses ||--o{ warehouse_agents : "склад"
+  warehouses ||--o{ rental_contracts : "договори"
+  users ||--o{ rental_contracts : "сключва (agent_id)"
+  users ||--o{ ratings : "оценен (agent_id)"
+  users ||--o{ ratings : "оценява (rated_by_id)"
+  users ||--o{ notifications : "получава"
+  rental_contracts |o--o{ notifications : "относно"
+
+  users {
+    bigint id PK
+    varchar username UK "уникално"
+    varchar password_hash "BCrypt"
+    varchar full_name
+    varchar email
+    varchar phone
+    varchar role "ADMIN / OWNER / AGENT"
+    numeric fee "хонорар (само агент)"
+  }
+  warehouses {
+    bigint id PK
+    varchar address
+    double length
+    double width
+    double height
+    varchar climate "DRY / HEATED / ..."
+    varchar goods_type "вид стока"
+    varchar category "A / B / C"
+    numeric monthly_price
+    varchar status "AVAILABLE / RENTED / INACTIVE"
+    bigint owner_id FK
+  }
+  warehouse_agents {
+    bigint warehouse_id PK,FK
+    bigint agent_id PK,FK
+  }
+  rental_contracts {
+    bigint id PK
+    varchar tenant_name
+    varchar tenant_phone
+    varchar tenant_email
+    date start_date
+    date end_date
+    numeric price
+    varchar status "PENDING / ACTIVE / EXPIRED / CANCELLED"
+    bigint warehouse_id FK
+    bigint agent_id FK
+  }
+  ratings {
+    bigint id PK
+    int score "1–5"
+    varchar comment
+    timestamp created_at
+    bigint agent_id FK
+    bigint rated_by_id FK
+  }
+  notifications {
+    bigint id PK
+    varchar type "NEW_REQUEST / WAREHOUSE_RENTED / CONTRACT_EXPIRING"
+    varchar message
+    boolean is_read
+    timestamp created_at
+    bigint recipient_id FK
+    bigint contract_id FK "може да е NULL"
+  }

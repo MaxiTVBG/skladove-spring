@@ -1,0 +1,47 @@
+---
+title: Sequence диаграма — отдаване на склад под наем
+---
+sequenceDiagram
+  autonumber
+  actor A as Складов агент
+  participant UI as Браузър<br/>(Thymeleaf форма)
+  participant SEC as Spring Security
+  participant C as RentalController
+  participant S as RentalService
+  participant WR as WarehouseRepository
+  participant RR as RentalContractRepository
+  participant N as NotificationService
+  participant DB as PostgreSQL (Neon)
+
+  A->>UI: Попълва формуляр за наем<br/>(наемател, период, цена)
+  UI->>SEC: POST /rentals
+  SEC->>SEC: Проверка: влязъл ли е и има ли роля AGENT?
+  alt няма права
+    SEC-->>UI: 403 Forbidden
+  else има права
+    SEC->>C: create(form, текущ агент)
+    C->>C: @Valid — проверка на полетата
+    C->>S: rent(warehouseId, данни, агент)
+    S->>WR: findById(warehouseId)
+    WR->>DB: SELECT * FROM warehouses WHERE id = ?
+    DB-->>WR: склад
+    WR-->>S: Warehouse
+
+    alt складът е зает или агентът не е назначен за него
+      S-->>C: изключение (бизнес правило)
+      C-->>UI: формата отново със съобщение за грешка
+    else складът е свободен
+      S->>RR: save(new RentalContract(...))
+      RR->>DB: INSERT INTO rental_contracts ...
+      S->>S: warehouse.status = RENTED
+      S->>WR: save(warehouse)
+      WR->>DB: UPDATE warehouses SET status = 'RENTED'
+      S->>N: notifyOwner(WAREHOUSE_RENTED)
+      N->>DB: INSERT INTO notifications ...
+      S->>S: log.info("Склад X отдаден ...")  [Log4j]
+      S-->>C: RentalContract
+      C-->>UI: redirect към договора
+      UI-->>A: Потвърждение: „Складът е отдаден“
+    end
+  end
+  Note over S,DB: Всичко в rent() е в една @Transactional транзакция:<br/>при грешка нито договорът, нито статусът се записват.

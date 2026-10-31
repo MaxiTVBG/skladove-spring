@@ -1,0 +1,87 @@
+---
+title: Use Case диаграма — система „Складове“
+---
+flowchart LR
+  %% Mermaid няма отделен тип за Use Case, затова се рисува с flowchart:
+  %% актьорите са отвън, случаите на употреба (овали) са в рамката на системата.
+  %% Цветът на линията показва кой актьор използва случая.
+
+  ADMIN["👤 Администратор"]
+  OWNER["👤 Собственик"]
+
+  subgraph SYS["Информационна система „Складове“ (всички случаи изискват вход)"]
+    subgraph G1["Потребители и профили"]
+      uc1([Създаване на собственик])
+      uc2([Създаване на складов агент])
+      uc3([Рейтинговане на складов агент])
+      uc4([Поддържане на профил<br/>хонорар и др.])
+    end
+    subgraph G2["Складове и наеми"]
+      uc5([Добавяне / редакция на склад])
+      uc6([Избор на складови агенти])
+      uc7([Отдаване под наем<br/>формуляр за наем])
+    end
+    subgraph G3["Справки по произволен период"]
+      uc8([Складове на собственик])
+      uc9([Складов агент: договори, рейтинг])
+      uc10([Налични складове])
+      uc11([История на наемателите])
+    end
+    subgraph G4["Изкуствен интелект"]
+      uc12([AI препоръка: цена / склад])
+    end
+    subgraph G5["Известия"]
+      uc13([Преглед на известия])
+      uc14([Проверка за изтичащи договори])
+    end
+  end
+
+  AGENT["👤 Складов агент"]
+  SCHED["⏱ Система (по график)"]
+
+  %% Администратор (линии 0–1)
+  ADMIN --- uc1
+  ADMIN --- uc2
+  %% Собственик (линии 2–9)
+  OWNER --- uc3
+  OWNER --- uc4
+  OWNER --- uc5
+  OWNER --- uc6
+  OWNER --- uc8
+  OWNER --- uc9
+  OWNER --- uc12
+  OWNER --- uc13
+  %% Складов агент (линии 10–15)
+  uc4 --- AGENT
+  uc7 --- AGENT
+  uc10 --- AGENT
+  uc11 --- AGENT
+  uc12 --- AGENT
+  uc13 --- AGENT
+  %% Система (линия 16)
+  uc14 --- SCHED
+  %% extend / include (линии 17–18)
+  uc6 -. "«extend»" .-> uc5
+  uc14 -. "«include»" .-> uc13
+
+  linkStyle 0,1 stroke:#C00000,stroke-width:2.5px
+  linkStyle 2,3,4,5,6,7,8,9 stroke:#2F5597,stroke-width:2.5px
+  linkStyle 10,11,12,13,14,15 stroke:#548235,stroke-width:2.5px
+  linkStyle 16 stroke:#7F7F7F,stroke-width:2.5px
+
+  classDef admin fill:#FDE9E9,stroke:#C00000,stroke-width:2px,color:#C00000,font-weight:bold
+  classDef owner fill:#DEEBF7,stroke:#2F5597,stroke-width:2px,color:#2F5597,font-weight:bold
+  classDef agent fill:#E2F0D9,stroke:#548235,stroke-width:2px,color:#548235,font-weight:bold
+  classDef sched fill:#EEEEEE,stroke:#7F7F7F,stroke-width:2px,color:#404040,font-weight:bold
+  classDef uc fill:#FFFFFF,stroke:#7F7F7F,color:#000
+  class ADMIN admin
+  class OWNER owner
+  class AGENT agent
+  class SCHED sched
+  class uc1,uc2,uc3,uc4,uc5,uc6,uc7,uc8,uc9,uc10,uc11,uc12,uc13,uc14 uc
+  style SYS fill:#FFFFFF,stroke:#1F3864,stroke-width:2px
+  style G1 fill:#FBE5D6,stroke:#F4B183
+  style G2 fill:#DEEBF7,stroke:#9DC3E6
+  style G3 fill:#E2F0D9,stroke:#A9D18E
+  style G4 fill:#EADCF4,stroke:#C5A3E0
+  style G5 fill:#FFF2CC,stroke:#FFD966
