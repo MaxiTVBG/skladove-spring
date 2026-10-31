@@ -1,47 +1,61 @@
 ---
-title: Sequence диаграма — отдаване на склад под наем
+title: Sequence диаграма — заявка за наем и одобрение от собственика
 ---
 sequenceDiagram
   autonumber
-  actor A as Складов агент
-  participant UI as Браузър<br/>(Thymeleaf форма)
+  actor AG as Складов агент
+  actor OW as Собственик
   participant SEC as Spring Security
   participant C as RentalController
   participant S as RentalService
-  participant WR as WarehouseRepository
-  participant RR as RentalContractRepository
-  participant N as NotificationService
+  participant AV as WarehouseAvailabilityService
+  participant R as Repositories
   participant DB as PostgreSQL (Neon)
 
-  A->>UI: Попълва формуляр за наем<br/>(наемател, период, цена)
-  UI->>SEC: POST /rentals
-  SEC->>SEC: Проверка: влязъл ли е и има ли роля AGENT?
-  alt няма права
-    SEC-->>UI: 403 Forbidden
-  else има права
-    SEC->>C: create(form, текущ агент)
-    C->>C: @Valid — проверка на полетата
-    C->>S: rent(warehouseId, данни, агент)
-    S->>WR: findById(warehouseId)
-    WR->>DB: SELECT * FROM warehouses WHERE id = ?
-    DB-->>WR: склад
-    WR-->>S: Warehouse
-
-    alt складът е зает или агентът не е назначен за него
-      S-->>C: изключение (бизнес правило)
-      C-->>UI: формата отново със съобщение за грешка
-    else складът е свободен
-      S->>RR: save(new RentalContract(...))
-      RR->>DB: INSERT INTO rental_contracts ...
-      S->>S: warehouse.status = RENTED
-      S->>WR: save(warehouse)
-      WR->>DB: UPDATE warehouses SET status = 'RENTED'
-      S->>N: notifyOwner(WAREHOUSE_RENTED)
-      N->>DB: INSERT INTO notifications ...
-      S->>S: log.info("Склад X отдаден ...")  [Log4j]
-      S-->>C: RentalContract
-      C-->>UI: redirect към договора
-      UI-->>A: Потвърждение: „Складът е отдаден“
-    end
+  rect rgb(226, 240, 217)
+  Note over AG,DB: Част 1 — агентът създава заявка за наем
+  AG->>SEC: POST /agent/rentals (наемател, период, цена)
+  SEC->>SEC: Влязъл ли е и има ли роля AGENT?
+  SEC->>C: заявката е разрешена
+  C->>S: createRequest(warehouseId, agentId, данни)
+  S->>R: findById(склад), findById(агент)
+  R->>DB: SELECT ...
+  S->>S: Проверки: ролята е AGENT, агентът е назначен<br/>към склада, периодът и цената са валидни
+  S->>AV: isAvailable(склад, от, до)
+  AV->>R: findByWarehouseIdAndStatus(склад, ACTIVE)
+  R->>DB: SELECT ... FROM rental_contract
+  AV-->>S: true / false (има ли застъпване на периоди)
+  alt складът е зает за периода или проверка не минава
+    S-->>C: изключение със съобщение
+    C-->>AG: формата отново, с грешката
+  else всичко е наред
+    S->>R: save(договор със статус PENDING_OWNER_APPROVAL)
+    R->>DB: INSERT INTO rental_contract ...
+    C-->>AG: „Заявката е изпратена за одобрение“
   end
-  Note over S,DB: Всичко в rent() е в една @Transactional транзакция:<br/>при грешка нито договорът, нито статусът се записват.
+  end
+
+  rect rgb(222, 235, 247)
+  Note over OW,DB: Част 2 — собственикът одобрява или отхвърля
+  OW->>SEC: POST /owner/rentals/{id}/approve или /reject
+  SEC->>SEC: Влязъл ли е и има ли роля OWNER?
+  SEC->>C: заявката е разрешена
+  alt одобрява
+    C->>S: approveRequest(contractId, ownerId)
+    S->>S: Проверки: той е собственикът на склада,<br/>заявката още чака решение
+    S->>AV: isAvailable(...) — повторна проверка
+    S->>R: save(договор: ACTIVE, decidedBy, decidedAt)
+    S->>AV: synchronizeStatus(склад)
+    AV->>AV: Има ли активен договор днес? → RENTED, иначе AVAILABLE
+    S->>R: save(склад)
+    R->>DB: UPDATE rental_contract, UPDATE warehouse
+    C-->>OW: „Заявката е одобрена“
+  else отхвърля
+    C->>S: rejectRequest(contractId, ownerId, бележка)
+    S->>R: save(договор: REJECTED, бележка)
+    R->>DB: UPDATE rental_contract
+    C-->>OW: „Заявката е отхвърлена“
+  end
+  end
+
+  Note over S,DB: Всеки метод на RentalService е @Transactional:<br/>при грешка нищо не се записва наполовина.

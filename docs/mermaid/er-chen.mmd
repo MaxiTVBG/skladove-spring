@@ -8,27 +8,22 @@ flowchart TB
   USER[ПОТРЕБИТЕЛ]
   WH[СКЛАД]
   RC[ДОГОВОР ЗА НАЕМ]
-  RT[РЕЙТИНГ]
   NT[ИЗВЕСТИЕ]
 
   %% ---------- Връзки ----------
   owns{притежава}
   serves{обслужва}
-  signs{сключва}
+  creates{създава заявка}
+  decides{одобрява /<br/>отхвърля}
   covers{отнася се за}
-  rated{получава оценка}
-  gives{дава оценка}
   receives{получава}
-  about{относно}
 
   USER ---|1| owns ---|N| WH
   USER ---|M| serves ---|N| WH
-  USER ---|1| signs ---|N| RC
+  USER ---|1| creates ---|N| RC
+  USER ---|1| decides ---|N| RC
   WH ---|1| covers ---|N| RC
-  USER ---|1| rated ---|N| RT
-  USER ---|1| gives ---|N| RT
   USER ---|1| receives ---|N| NT
-  RC ---|1| about ---|N| NT
 
   %% ---------- Атрибути ----------
   u1([<u>id</u>]) --- USER
@@ -39,27 +34,28 @@ flowchart TB
   u6([телефон]) --- USER
   u7([роля]) --- USER
   u8([хонорар]) --- USER
+  u9([рейтинг]) --- USER
 
   WH --- w1([<u>id</u>])
-  WH --- w2([адрес])
-  WH --- w3([размери])
-  WH --- w4([климат])
-  WH --- w5([вид стока])
-  WH --- w6([категория])
-  WH --- w7([цена / месец])
-  WH --- w8([статус])
+  WH --- w2([име])
+  WH --- w3([адрес])
+  WH --- w4([площ])
+  WH --- w5([височина])
+  WH --- w6([климатични условия])
+  WH --- w7([вид стока])
+  WH --- w8([категория])
+  WH --- w9([цена / месец])
+  WH --- w10([статус])
 
   RC --- c1([<u>id</u>])
-  RC --- c2([наемател])
+  RC --- c2([наемател<br/>име, телефон, имейл])
   RC --- c3([от дата])
   RC --- c4([до дата])
   RC --- c5([цена])
   RC --- c6([статус])
-
-  RT --- r1([<u>id</u>])
-  RT --- r2([оценка 1–5])
-  RT --- r3([коментар])
-  RT --- r4([дата])
+  RC --- c7([дата на заявка])
+  RC --- c8([дата на решение])
+  RC --- c9([бележка])
 
   NT --- n1([<u>id</u>])
   NT --- n2([тип])
@@ -72,7 +68,7 @@ flowchart TB
   classDef rel fill:#FFE699,stroke:#BF9000,stroke-width:1.5px,color:#000
   classDef attr fill:#F2F2F2,stroke:#7F7F7F,color:#000
   classDef key fill:#FFF2CC,stroke:#BF9000,stroke-width:2px,color:#000,font-weight:bold
-  class USER,WH,RC,RT,NT entity
-  class owns,serves,signs,covers,rated,gives,receives,about rel
-  class u2,u3,u4,u5,u6,u7,u8,w2,w3,w4,w5,w6,w7,w8,c2,c3,c4,c5,c6,r2,r3,r4,n2,n3,n4,n5 attr
-  class u1,w1,c1,r1,n1 key
+  class USER,WH,RC,NT entity
+  class owns,serves,creates,decides,covers,receives rel
+  class u2,u3,u4,u5,u6,u7,u8,u9,w2,w3,w4,w5,w6,w7,w8,w9,w10,c2,c3,c4,c5,c6,c7,c8,c9,n2,n3,n4,n5 attr
+  class u1,w1,c1,n1 key

@@ -2,69 +2,63 @@
 title: Релационна схема (таблици в PostgreSQL)
 ---
 erDiagram
-  users ||--o{ warehouses : "притежава (owner_id)"
-  users ||--o{ warehouse_agents : "агент"
-  warehouses ||--o{ warehouse_agents : "склад"
-  warehouses ||--o{ rental_contracts : "договори"
-  users ||--o{ rental_contracts : "сключва (agent_id)"
-  users ||--o{ ratings : "оценен (agent_id)"
-  users ||--o{ ratings : "оценява (rated_by_id)"
-  users ||--o{ notifications : "получава"
-  rental_contracts |o--o{ notifications : "относно"
+  app_user ||--o{ warehouse : "притежава (owner_id)"
+  app_user ||--o{ warehouse_agent : "агент"
+  warehouse ||--o{ warehouse_agent : "склад"
+  warehouse ||--o{ rental_contract : "договори"
+  app_user ||--o{ rental_contract : "създава (agent_id)"
+  app_user |o--o{ rental_contract : "решава (decided_by_id)"
+  app_user ||--o{ notification : "получава"
 
-  users {
+  app_user {
     bigint id PK
     varchar username UK "уникално"
-    varchar password_hash "BCrypt"
+    varchar password "BCrypt хеш"
     varchar full_name
     varchar email
     varchar phone
     varchar role "ADMIN / OWNER / AGENT"
     numeric fee "хонорар (само агент)"
+    float rating "среден рейтинг (само агент)"
   }
-  warehouses {
+  warehouse {
     bigint id PK
+    varchar name
     varchar address
-    double length
-    double width
-    double height
-    varchar climate "DRY / HEATED / ..."
+    float area "кв. м"
+    float height "м"
+    varchar climate_conditions
     varchar goods_type "вид стока"
-    varchar category "A / B / C"
+    varchar category
     numeric monthly_price
-    varchar status "AVAILABLE / RENTED / INACTIVE"
+    varchar status "AVAILABLE / RENTED / MAINTENANCE / INACTIVE"
     bigint owner_id FK
   }
-  warehouse_agents {
+  warehouse_agent {
     bigint warehouse_id PK,FK
     bigint agent_id PK,FK
   }
-  rental_contracts {
+  rental_contract {
     bigint id PK
+    bigint warehouse_id FK
+    bigint agent_id FK
+    bigint decided_by_id FK "собственик, NULL докато чака"
     varchar tenant_name
     varchar tenant_phone
     varchar tenant_email
     date start_date
     date end_date
     numeric price
-    varchar status "PENDING / ACTIVE / EXPIRED / CANCELLED"
-    bigint warehouse_id FK
-    bigint agent_id FK
+    varchar status "PENDING_OWNER_APPROVAL / ACTIVE / REJECTED / COMPLETED / CANCELLED"
+    date created_at
+    timestamp decided_at
+    varchar decision_note
   }
-  ratings {
+  notification {
     bigint id PK
-    int score "1–5"
-    varchar comment
-    timestamp created_at
-    bigint agent_id FK
-    bigint rated_by_id FK
-  }
-  notifications {
-    bigint id PK
-    varchar type "NEW_REQUEST / WAREHOUSE_RENTED / CONTRACT_EXPIRING"
-    varchar message
-    boolean is_read
-    timestamp created_at
     bigint recipient_id FK
-    bigint contract_id FK "може да е NULL"
+    varchar type "NEW_RENTAL_REQUEST / WAREHOUSE_RENTED / CONTRACT_EXPIRING"
+    varchar message
+    boolean read
+    timestamp created_at
   }
