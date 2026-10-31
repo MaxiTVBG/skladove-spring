@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="bg" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Моите складове - Складове</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f4f6f9; }
+        h1 { color: #243b53; }
+        .container { max-width: 1100px; margin: auto; }
+        .card { background: white; padding: 25px; margin-bottom: 25px; border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+        .btn { display: inline-block; padding: 10px 18px; border: none; border-radius: 4px;
+               background: #245b85; color: white; text-decoration: none; cursor: pointer; }
+        .btn:hover { background: #17466d; }
+        .btn-small { padding: 6px 12px; font-size: 14px; }
+        .btn-light { background: #e4e7eb; color: #243b53; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #245b85; color: white; }
+        .status { padding: 4px 10px; border-radius: 12px; font-size: 13px; font-weight: bold; }
+        .AVAILABLE { background: #e5f5e9; color: #187a37; }
+        .RENTED { background: #fff4e5; color: #9a5b00; }
+        .MAINTENANCE { background: #e8eefc; color: #2f4fa3; }
+        .INACTIVE { background: #eeeeee; color: #555; }
+        .success { color: #187a37; background: #e5f5e9; padding: 12px; border-radius: 4px; }
+        .error { color: #a32121; background: #fde8e8; padding: 12px; border-radius: 4px; }
+        .empty { color: #627d98; text-align: center; padding: 30px; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="top">
+        <h1>Моите складове</h1>
+        <div>
+            <a class="btn btn-light" th:href="@{/}">Начало</a>
+            <a class="btn" th:href="@{/owner/warehouses/new}">+ Добави склад</a>
+        </div>
+    </div>
+    <p>Собственик: <b sec:authentication="name"></b></p>
+
+    <p class="success" th:if="${successMessage}" th:text="${successMessage}"></p>
+    <p class="error" th:if="${errorMessage}" th:text="${errorMessage}"></p>
+
+    <div class="card">
+        <p class="empty" th:if="${#lists.isEmpty(warehouses)}">
+            Все още нямате складове. Натиснете „+ Добави склад“, за да създадете първия.
+        </p>
+
+        <table th:unless="${#lists.isEmpty(warehouses)}">
+            <thead>
+            <tr>
+                <th>Име</th>
+                <th>Адрес</th>
+                <th>Площ (м²)</th>
+                <th>Категория</th>
+                <th>Вид стока</th>
+                <th>Цена / месец</th>
+                <th>Статус</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="w : ${warehouses}">
+                <td th:text="${w.name}"></td>
+                <td th:text="${w.address}"></td>
+                <td th:text="${w.area}"></td>
+                <td th:text="${w.category}"></td>
+                <td th:text="${w.goodsType} ?: '—'"></td>
+                <td th:text="${#numbers.formatDecimal(w.monthlyPrice, 1, 2)} + ' лв.'"></td>
+                <td>
+                    <span class="status" th:classappend="${w.status}"
+                          th:switch="${w.status?.name()}">
+                        <span th:case="'AVAILABLE'">Свободен</span>
+                        <span th:case="'RENTED'">Нает</span>
+                        <span th:case="'MAINTENANCE'">Ремонт</span>
+                        <span th:case="'INACTIVE'">Неактивен</span>
+                    </span>
+                </td>
+                <td>
+                    <a class="btn btn-small" th:href="@{/owner/warehouses/{id}/edit(id=${w.id})}">Редактирай</a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+</div>
+</body>
+</html>
