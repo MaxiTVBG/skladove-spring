@@ -1,0 +1,214 @@
+
+<!DOCTYPE html>
+<html lang="bg" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Администрация - Складове</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background: #f4f6f9;
+        }
+
+        h1, h2 {
+            color: #243b53;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: auto;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .forms {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        input {
+            display: block;
+            width: 95%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 4px;
+            background: #245b85;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #17466d;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: #245b85;
+            color: white;
+        }
+
+        .success {
+            color: #187a37;
+            background: #e5f5e9;
+            padding: 12px;
+        }
+
+        .error {
+            color: #a32121;
+            background: #fde8e8;
+            padding: 12px;
+        }
+
+        .logout {
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 700px) {
+            .forms {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <h1>Административен панел</h1>
+
+    <p>Добре дошли, администратор!</p>
+
+    <form th:action="@{/logout}" method="post" class="logout">
+        <button type="submit">Изход</button>
+    </form>
+
+    <!-- Success and error messages -->
+
+    <p class="success"
+       th:if="${successMessage}"
+       th:text="${successMessage}">
+    </p>
+
+    <p class="error"
+       th:if="${errorMessage}"
+       th:text="${errorMessage}">
+    </p>
+
+    <!-- User creation forms -->
+
+    <div class="forms">
+
+        <div class="card">
+            <h2>Създаване на собственик</h2>
+
+            <form th:action="@{/admin/users/owner}" method="post">
+
+                <label>Потребителско име</label>
+                <input type="text" name="username" required>
+
+                <label>Пълно име</label>
+                <input type="text" name="fullName" required>
+
+                <label>Имейл</label>
+                <input type="email" name="email">
+
+                <label>Телефон</label>
+                <input type="text" name="phone">
+
+                <label>Парола</label>
+                <input type="password" name="password"
+                       minlength="6" required>
+
+                <button type="submit">Създай собственик</button>
+
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Създаване на складов агент</h2>
+
+            <form th:action="@{/admin/users/agent}" method="post">
+
+                <label>Потребителско име</label>
+                <input type="text" name="username" required>
+
+                <label>Пълно име</label>
+                <input type="text" name="fullName" required>
+
+                <label>Имейл</label>
+                <input type="email" name="email">
+
+                <label>Телефон</label>
+                <input type="text" name="phone">
+
+                <label>Парола</label>
+                <input type="password" name="password"
+                       minlength="6" required>
+
+                <button type="submit">Създай агент</button>
+
+            </form>
+        </div>
+
+    </div>
+
+    <!-- Registered users -->
+
+    <div class="card">
+
+        <h2>Регистрирани потребители</h2>
+
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Потребителско име</th>
+                <th>Име</th>
+                <th>Имейл</th>
+                <th>Телефон</th>
+                <th>Роля</th>
+            </tr>
+            </thead>
+
+            <tbody>
+            <tr th:each="user : ${users}">
+                <td th:text="${user.id}"></td>
+                <td th:text="${user.username}"></td>
+                <td th:text="${user.fullName}"></td>
+                <td th:text="${user.email}"></td>
+                <td th:text="${user.phone}"></td>
+                <td th:text="${user.role}"></td>
+            </tr>
+            </tbody>
+        </table>
+
+    </div>
+
+</div>
+</body>
+</html>

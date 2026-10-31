@@ -7,26 +7,47 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
-/**
- * Достъп по роли:
- *  /admin/**  - само администратор
- *  /owner/**  - собственик
- *  /agent/**  - складов агент
- */
 @Configuration
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http)
+            throws Exception {
+
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/css/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+
+                        // Public pages and resources
+                        .requestMatchers(
+                                "/login",
+                                "/css/**",
+                                "/js/**",
+                                "/images/**",
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**"
+                        ).permitAll()
+
+                        // Role-based access
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/owner/**").hasRole("OWNER")
                         .requestMatchers("/agent/**").hasRole("AGENT")
-                        .anyRequest().authenticated())
-                .formLogin(form -> form.loginPage("/login").defaultSuccessUrl("/", true).permitAll())
-                .logout(logout -> logout.logoutSuccessUrl("/login?logout"));
+
+                        // Everything else requires authentication
+                        .anyRequest().authenticated()
+                )
+
+                .formLogin(form -> form
+                        .loginPage("/login")
+                        .defaultSuccessUrl("/", true)
+                        .permitAll()
+                )
+
+                .logout(logout -> logout
+                        .logoutSuccessUrl("/login?logout")
+                        .permitAll()
+                );
+
         return http.build();
     }
 
