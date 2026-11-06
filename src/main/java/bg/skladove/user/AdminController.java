@@ -1,5 +1,8 @@
+
 package bg.skladove.user;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -8,6 +11,9 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @Controller
 @RequestMapping("/admin")
 public class AdminController {
+
+    private static final Logger logger =
+            LogManager.getLogger(AdminController.class);
 
     private final AppUserRepository users;
     private final UserService userService;
@@ -20,7 +26,11 @@ public class AdminController {
 
     @GetMapping
     public String dashboard(Model model) {
+
+        logger.info("Admin dashboard accessed.");
+
         model.addAttribute("users", users.findAll());
+
         return "admin/dashboard";
     }
 
@@ -75,6 +85,9 @@ public class AdminController {
             );
 
         } catch (IllegalArgumentException e) {
+
+            logger.warn("Admin user creation failed for username '{}', role '{}': {}",
+                    username, role, e.getMessage());
 
             redirectAttributes.addFlashAttribute(
                     "errorMessage",

@@ -1,0 +1,123 @@
+
+<!DOCTYPE html>
+<html lang="bg" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Оценяване на агенти</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            margin: 40px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        input, select, textarea {
+            display: block;
+            width: 95%;
+            padding: 10px;
+            margin: 10px 0 18px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            background: #245b85;
+            color: white;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <h1>Оценяване на складови агенти</h1>
+
+    <p class="success"
+       th:if="${successMessage}"
+       th:text="${successMessage}"></p>
+
+    <p class="error"
+       th:if="${errorMessage}"
+       th:text="${errorMessage}"></p>
+
+    <div th:if="${#lists.isEmpty(contracts)}">
+        <p>Няма приключени наеми, които очакват оценка.</p>
+    </div>
+
+    <div th:each="contract : ${contracts}" class="card">
+
+        <h2 th:text="${contract.warehouse.name}"></h2>
+
+        <p>
+            <strong>Агент:</strong>
+            <span th:text="${contract.agent.fullName}"></span>
+        </p>
+
+        <p>
+            <strong>Наемател:</strong>
+            <span th:text="${contract.tenantName}"></span>
+        </p>
+
+        <p>
+            <strong>Период:</strong>
+            <span th:text="${contract.startDate}"></span>
+            -
+            <span th:text="${contract.endDate}"></span>
+        </p>
+
+        <form th:action="@{/owner/ratings}" method="post">
+
+            <input type="hidden"
+                   name="contractId"
+                   th:value="${contract.id}">
+
+            <label>Оценка (1–5 звезди)</label>
+
+            <select name="score" required>
+                <option value="">Избери оценка</option>
+                <option value="1">1 - Много лошо</option>
+                <option value="2">2 - Лошо</option>
+                <option value="3">3 - Добре</option>
+                <option value="4">4 - Много добре</option>
+                <option value="5">5 - Отлично</option>
+            </select>
+
+            <label>Коментар (незадължителен)</label>
+
+            <textarea name="comment"
+                      maxlength="500"
+                      rows="3"
+                      placeholder="Споделете впечатленията си..."></textarea>
+
+            <button type="submit">Изпрати оценка</button>
+
+        </form>
+
+    </div>
+
+    <p><a th:href="@{/owner}">Обратно към моите складове</a></p>
+
+</div>
+</body>
+</html>
