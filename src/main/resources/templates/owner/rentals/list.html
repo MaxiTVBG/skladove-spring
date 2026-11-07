@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="bg" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Заявки за наем - Складове</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f4f6f9; }
+        h1, h2 { color: #243b53; }
+        h2 { font-size: 20px; margin-top: 0; }
+        .container { max-width: 1200px; margin: auto; }
+        .card { background: white; padding: 25px; margin-bottom: 25px; border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+        .btn { display: inline-block; padding: 10px 18px; border: none; border-radius: 4px;
+               background: #245b85; color: white; text-decoration: none; cursor: pointer; font-size: 14px; }
+        .btn:hover { background: #17466d; }
+        .btn-small { padding: 6px 12px; }
+        .btn-light { background: #e4e7eb; color: #243b53; }
+        .btn-green { background: #187a37; }
+        .btn-green:hover { background: #11592a; }
+        .btn-red { background: #a32121; }
+        .btn-red:hover { background: #7d1818; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; vertical-align: top; }
+        th { background: #245b85; color: white; }
+        .status { padding: 4px 10px; border-radius: 12px; font-size: 13px; font-weight: bold; white-space: nowrap; }
+        .ACTIVE { background: #e5f5e9; color: #187a37; }
+        .PENDING_OWNER_APPROVAL { background: #fff4e5; color: #9a5b00; }
+        .COMPLETED { background: #e8eefc; color: #2f4fa3; }
+        .CANCELLED { background: #eeeeee; color: #555; }
+        .REJECTED { background: #fde8e8; color: #a32121; }
+        .muted { color: #829ab1; font-size: 13px; }
+        .decide { display: flex; flex-direction: column; gap: 8px; min-width: 220px; }
+        .decide form { margin: 0; }
+        .reject-form { display: flex; gap: 6px; }
+        .reject-form input { flex: 1; padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .success { color: #187a37; background: #e5f5e9; padding: 12px; border-radius: 4px; }
+        .error { color: #a32121; background: #fde8e8; padding: 12px; border-radius: 4px; }
+        .empty { color: #627d98; text-align: center; padding: 20px; }
+        .badge { background: #a32121; color: white; border-radius: 10px; padding: 2px 9px; font-size: 14px; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="top">
+        <h1>Заявки за наем</h1>
+        <div>
+            <a class="btn btn-light" th:href="@{/}">Начало</a>
+            <a class="btn btn-light" th:href="@{/owner/warehouses}">Моите складове</a>
+            <a class="btn btn-light" th:href="@{/owner/ratings}">Оценка на агенти</a>
+        </div>
+    </div>
+    <p>Собственик: <b sec:authentication="name"></b></p>
+
+    <p class="success" th:if="${successMessage}" th:text="${successMessage}"></p>
+    <p class="error" th:if="${errorMessage}" th:text="${errorMessage}"></p>
+
+    <!-- 1. Чакащи одобрение -->
+    <div class="card">
+        <h2>Чакащи одобрение
+            <span class="badge" th:unless="${#lists.isEmpty(pending)}" th:text="${#lists.size(pending)}"></span>
+        </h2>
+        <p class="empty" th:if="${#lists.isEmpty(pending)}">Няма нови заявки.</p>
+        <table th:unless="${#lists.isEmpty(pending)}">
+            <thead>
+            <tr>
+                <th>Склад</th>
+                <th>Агент</th>
+                <th>Наемател</th>
+                <th>Период</th>
+                <th>Цена</th>
+                <th>Подадена</th>
+                <th>Решение</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="c : ${pending}">
+                <td th:text="${c.warehouse.name}"></td>
+                <td th:text="${c.agent.fullName}"></td>
+                <td>
+                    <span th:text="${c.tenantName}"></span><br>
+                    <span class="muted" th:text="${c.tenantPhone}"></span>
+                    <span class="muted" th:text="${c.tenantEmail}"></span>
+                </td>
+                <td th:text="${#temporals.format(c.startDate, 'dd.MM.yyyy')} + ' – ' + ${#temporals.format(c.endDate, 'dd.MM.yyyy')}"></td>
+                <td th:text="${#numbers.formatDecimal(c.price, 1, 2)} + ' лв.'"></td>
+                <td th:text="${#temporals.format(c.createdAt, 'dd.MM.yyyy')}"></td>
+                <td>
+                    <div class="decide">
+                        <form th:action="@{/owner/rentals/{id}/approve(id=${c.id})}" method="post">
+                            <button class="btn btn-small btn-green" type="submit">Одобри</button>
+                        </form>
+                        <form class="reject-form" th:action="@{/owner/rentals/{id}/reject(id=${c.id})}" method="post">
+                            <input type="text" name="note" maxlength="500" placeholder="причина (по желание)">
+                            <button class="btn btn-small btn-red" type="submit">Отхвърли</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 2. История: активни, приключили, отхвърлени -->
+    <div class="card">
+        <h2>Договори</h2>
+        <p class="empty" th:if="${#lists.isEmpty(history)}">Все още няма договори.</p>
+        <table th:unless="${#lists.isEmpty(history)}">
+            <thead>
+            <tr>
+                <th>Склад</th>
+                <th>Агент</th>
+                <th>Наемател</th>
+                <th>Период</th>
+                <th>Цена</th>
+                <th>Статус</th>
+                <th>Бележка</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="c : ${history}">
+                <td th:text="${c.warehouse.name}"></td>
+                <td th:text="${c.agent.fullName}"></td>
+                <td th:text="${c.tenantName}"></td>
+                <td th:text="${#temporals.format(c.startDate, 'dd.MM.yyyy')} + ' – ' + ${#temporals.format(c.endDate, 'dd.MM.yyyy')}"></td>
+                <td th:text="${#numbers.formatDecimal(c.price, 1, 2)} + ' лв.'"></td>
+                <td>
+                    <span class="status" th:classappend="${c.status}" th:switch="${c.status.name()}">
+                        <span th:case="'ACTIVE'">Активен</span>
+                        <span th:case="'REJECTED'">Отхвърлен</span>
+                        <span th:case="'COMPLETED'">Приключил</span>
+                        <span th:case="'CANCELLED'">Анулиран</span>
+                    </span>
+                </td>
+                <td th:text="${c.decisionNote} ?: '—'"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+</div>
+</body>
+</html>

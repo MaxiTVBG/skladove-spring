@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="bg" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Наеми - Складове</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f4f6f9; }
+        h1, h2 { color: #243b53; }
+        h2 { font-size: 20px; margin-top: 0; }
+        .container { max-width: 1200px; margin: auto; }
+        .card { background: white; padding: 25px; margin-bottom: 25px; border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+        .btn { display: inline-block; padding: 10px 18px; border: none; border-radius: 4px;
+               background: #245b85; color: white; text-decoration: none; cursor: pointer; }
+        .btn:hover { background: #17466d; }
+        .btn-small { padding: 6px 12px; font-size: 14px; }
+        .btn-light { background: #e4e7eb; color: #243b53; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; vertical-align: top; }
+        th { background: #245b85; color: white; }
+        .status { padding: 4px 10px; border-radius: 12px; font-size: 13px; font-weight: bold; white-space: nowrap; }
+        .AVAILABLE, .ACTIVE { background: #e5f5e9; color: #187a37; }
+        .RENTED, .PENDING_OWNER_APPROVAL { background: #fff4e5; color: #9a5b00; }
+        .MAINTENANCE, .COMPLETED { background: #e8eefc; color: #2f4fa3; }
+        .INACTIVE, .CANCELLED { background: #eeeeee; color: #555; }
+        .REJECTED { background: #fde8e8; color: #a32121; }
+        .muted { color: #829ab1; font-size: 13px; }
+        .success { color: #187a37; background: #e5f5e9; padding: 12px; border-radius: 4px; }
+        .error { color: #a32121; background: #fde8e8; padding: 12px; border-radius: 4px; }
+        .empty { color: #627d98; text-align: center; padding: 20px; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="top">
+        <h1>Наеми</h1>
+        <a class="btn btn-light" th:href="@{/}">Начало</a>
+    </div>
+    <p>Складов агент: <b sec:authentication="name"></b></p>
+
+    <p class="success" th:if="${successMessage}" th:text="${successMessage}"></p>
+    <p class="error" th:if="${errorMessage}" th:text="${errorMessage}"></p>
+
+    <!-- 1. Складове, към които агентът е назначен от собственика (задача №11) -->
+    <div class="card">
+        <h2>Складове, които обслужвам</h2>
+        <p class="empty" th:if="${#lists.isEmpty(warehouses)}">
+            Все още не сте назначени към нито един склад. Собственикът трябва да ви избере като агент.
+        </p>
+        <table th:unless="${#lists.isEmpty(warehouses)}">
+            <thead>
+            <tr>
+                <th>Склад</th>
+                <th>Адрес</th>
+                <th>Собственик</th>
+                <th>Площ (м²)</th>
+                <th>Категория</th>
+                <th>Цена / месец</th>
+                <th>Статус</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="w : ${warehouses}">
+                <td th:text="${w.name}"></td>
+                <td th:text="${w.address}"></td>
+                <td th:text="${w.owner.fullName}"></td>
+                <td th:text="${w.area}"></td>
+                <td th:text="${w.category}"></td>
+                <td th:text="${#numbers.formatDecimal(w.monthlyPrice, 1, 2)} + ' лв.'"></td>
+                <td>
+                    <span class="status" th:classappend="${w.status}" th:switch="${w.status?.name()}">
+                        <span th:case="'AVAILABLE'">Свободен</span>
+                        <span th:case="'RENTED'">Нает</span>
+                        <span th:case="'MAINTENANCE'">Ремонт</span>
+                        <span th:case="'INACTIVE'">Неактивен</span>
+                    </span>
+                </td>
+                <td>
+                    <!-- Нает склад също може да се заяви за бъдещ период; ремонт/неактивен не може. -->
+                    <a class="btn btn-small"
+                       th:if="${w.status?.name() == 'AVAILABLE' or w.status?.name() == 'RENTED'}"
+                       th:href="@{/agent/rentals/new(warehouseId=${w.id})}">Нова заявка</a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 2. Заявките и договорите на агента -->
+    <div class="card">
+        <h2>Моите заявки и договори</h2>
+        <p class="empty" th:if="${#lists.isEmpty(contracts)}">Все още нямате заявки за наем.</p>
+        <table th:unless="${#lists.isEmpty(contracts)}">
+            <thead>
+            <tr>
+                <th>Склад</th>
+                <th>Наемател</th>
+                <th>Период</th>
+                <th>Цена</th>
+                <th>Статус</th>
+                <th>Бележка от собственика</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="c : ${contracts}">
+                <td th:text="${c.warehouse.name}"></td>
+                <td>
+                    <span th:text="${c.tenantName}"></span><br>
+                    <span class="muted" th:text="${c.tenantPhone}"></span>
+                    <span class="muted" th:text="${c.tenantEmail}"></span>
+                </td>
+                <td th:text="${#temporals.format(c.startDate, 'dd.MM.yyyy')} + ' – ' + ${#temporals.format(c.endDate, 'dd.MM.yyyy')}"></td>
+                <td th:text="${#numbers.formatDecimal(c.price, 1, 2)} + ' лв.'"></td>
+                <td>
+                    <span class="status" th:classappend="${c.status}" th:switch="${c.status.name()}">
+                        <span th:case="'PENDING_OWNER_APPROVAL'">Чака одобрение</span>
+                        <span th:case="'ACTIVE'">Активен</span>
+                        <span th:case="'REJECTED'">Отхвърлен</span>
+                        <span th:case="'COMPLETED'">Приключил</span>
+                        <span th:case="'CANCELLED'">Анулиран</span>
+                    </span>
+                </td>
+                <td th:text="${c.decisionNote} ?: '—'"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+</div>
+</body>
+</html>
