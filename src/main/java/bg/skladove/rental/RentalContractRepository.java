@@ -1,6 +1,7 @@
 package bg.skladove.rental;
 
 import bg.skladove.user.AppUser;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDate;
@@ -47,4 +48,12 @@ public interface RentalContractRepository
             Long ownerId,
             RentalStatus status
     );
+
+    // За страниците с наеми: зарежда склада, агента и собственика, който е решил,
+    // с една заявка. Те са LAZY, а open-in-view е изключено.
+    @EntityGraph(attributePaths = {"warehouse", "agent", "decidedBy"})
+    List<RentalContract> findWithDetailsByAgentOrderByCreatedAtDesc(AppUser agent);
+
+    @EntityGraph(attributePaths = {"warehouse", "agent", "decidedBy"})
+    List<RentalContract> findWithDetailsByWarehouse_Owner_IdOrderByCreatedAtDesc(Long ownerId);
 }

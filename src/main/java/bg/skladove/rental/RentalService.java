@@ -7,6 +7,8 @@ import bg.skladove.user.Role;
 import bg.skladove.warehouse.Warehouse;
 import bg.skladove.warehouse.WarehouseAvailabilityService;
 import bg.skladove.warehouse.WarehouseRepository;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +18,8 @@ import java.time.LocalDateTime;
 
 @Service
 public class RentalService {
+
+    private static final Logger log = LogManager.getLogger(RentalService.class);
 
     private final RentalContractRepository contractRepository;
     private final WarehouseRepository warehouseRepository;
@@ -97,7 +101,10 @@ public class RentalService {
         contract.setPrice(price);
         contract.setStatus(RentalStatus.PENDING_OWNER_APPROVAL);
 
-        return contractRepository.save(contract);
+        RentalContract saved = contractRepository.save(contract);
+        log.info("Агент '{}' създаде заявка #{} за склад '{}' ({} - {})",
+                agent.getUsername(), saved.getId(), warehouse.getName(), startDate, endDate);
+        return saved;
     }
 
     // Owner approves a rental request
@@ -132,6 +139,8 @@ public class RentalService {
         availabilityService.synchronizeStatus(warehouse);
         warehouseRepository.save(warehouse);
 
+        log.info("Собственик '{}' одобри заявка #{} за склад '{}'",
+                owner.getUsername(), contract.getId(), warehouse.getName());
         return contract;
     }
 
@@ -154,6 +163,7 @@ public class RentalService {
         contract.setDecidedAt(LocalDateTime.now());
         contract.setDecisionNote(note);
 
+        log.info("Собственик '{}' отхвърли заявка #{}", owner.getUsername(), contract.getId());
         return contractRepository.save(contract);
     }
 
