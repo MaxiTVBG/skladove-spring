@@ -7,6 +7,8 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Данните, които собственикът попълва във формата за склад.
@@ -45,6 +47,13 @@ public class WarehouseForm {
     @DecimalMin(value = "0.01", message = "Цената трябва да е по-голяма от 0.")
     private BigDecimal monthlyPrice;
 
+    /**
+     * id-тата на избраните складови агенти (отметките във формата).
+     * Тук са само числа; WarehouseService ги превръща в потребители
+     * и проверява, че наистина са агенти.
+     */
+    private Set<Long> agentIds = new HashSet<>();
+
     /** Попълва формата от съществуващ склад (при редакция). */
     public static WarehouseForm from(Warehouse w) {
         WarehouseForm form = new WarehouseForm();
@@ -56,10 +65,14 @@ public class WarehouseForm {
         form.goodsType = w.getGoodsType();
         form.category = w.getCategory();
         form.monthlyPrice = w.getMonthlyPrice();
+        w.getAgents().forEach(agent -> form.agentIds.add(agent.getId()));
         return form;
     }
 
-    /** Прехвърля данните от формата върху склада. Не пипа owner, status и агентите. */
+    /**
+     * Прехвърля обикновените полета от формата върху склада.
+     * Не пипа owner и status; агентите се задават от WarehouseService.
+     */
     public void applyTo(Warehouse w) {
         w.setName(name.trim());
         w.setAddress(address.trim());
@@ -87,4 +100,6 @@ public class WarehouseForm {
     public void setCategory(String category) { this.category = category; }
     public BigDecimal getMonthlyPrice() { return monthlyPrice; }
     public void setMonthlyPrice(BigDecimal monthlyPrice) { this.monthlyPrice = monthlyPrice; }
+    public Set<Long> getAgentIds() { return agentIds; }
+    public void setAgentIds(Set<Long> agentIds) { this.agentIds = agentIds == null ? new HashSet<>() : agentIds; }
 }

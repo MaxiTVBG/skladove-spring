@@ -10,9 +10,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -22,7 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit тестове за WarehouseService.
+ * Unit тестове за WarehouseService (задачи №10 и №11).
  * Repository-тата са заменени с Mockito "mock"-ове, затова тестовете
  * не ползват база данни и вървят за части от секундата.
  */
@@ -40,11 +44,22 @@ class WarehouseServiceTest {
 
     private AppUser owner;
     private AppUser otherOwner;
+    private AppUser agentPetar;
+    private AppUser agentGeorgi;
 
     @BeforeEach
     void setUp() {
-        owner = new AppUser("ivan", "hash", "Иван Петров", Role.OWNER);
-        otherOwner = new AppUser("maria", "hash", "Мария Иванова", Role.OWNER);
+        owner = user(1L, "ivan", Role.OWNER);
+        otherOwner = user(2L, "maria", Role.OWNER);
+        agentPetar = user(5L, "petar", Role.AGENT);
+        agentGeorgi = user(6L, "georgi", Role.AGENT);
+    }
+
+    /** AppUser няма setId (id-то се генерира от базата), затова го задаваме с reflection. */
+    private static AppUser user(Long id, String username, Role role) {
+        AppUser u = new AppUser(username, "hash", username, role);
+        ReflectionTestUtils.setField(u, "id", id);
+        return u;
     }
 
     private WarehouseForm validForm() {
@@ -58,6 +73,8 @@ class WarehouseServiceTest {
         return form;
     }
 
+    // ---------------- Задача №10: добавяне и редакция ----------------
+
     @Test
     void createSetsOwnerAndAvailableStatus() {
         when(users.findByUsername("ivan")).thenReturn(Optional.of(owner));
@@ -69,12 +86,12 @@ class WarehouseServiceTest {
         assertThat(created.getStatus()).isEqualTo(WarehouseStatus.AVAILABLE);
         assertThat(created.getName()).isEqualTo("Склад Север"); // интервалите са махнати
         assertThat(created.getArea()).isEqualTo(250.0);
+        assertThat(created.getAgents()).isEmpty();
     }
 
     @Test
     void agentCannotCreateWarehouse() {
-        AppUser agent = new AppUser("petar", "hash", "Петър", Role.AGENT);
-        when(users.findByUsername("petar")).thenReturn(Optional.of(agent));
+        when(users.findByUsername("petar")).thenReturn(Optional.of(agentPetar));
 
         assertThatThrownBy(() -> service.create(validForm(), "petar"))
                 .isInstanceOf(AccessDeniedException.class);
@@ -115,5 +132,76 @@ class WarehouseServiceTest {
         assertThatThrownBy(() -> service.getOwnedWarehouse(99L, "ivan"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Складът не е намерен.");
+    }
+
+    // ---------------- Задача №11: избор на складови агенти ----------------
+
+    @Test
+    void createAssignsSelectedAgents() {
+        when(users.findByUsername("ivan")).thenReturn(Optional.of(owner));
+        when(users.findAllById(Set.of(5L, 6L))).thenReturn(List.of(agentPetar, agentGeorgi));
+        when(warehouses.save(any(Warehouse.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        WarehouseForm form = validForm();
+        form.setAgentIds(Set.of(5L, 6L));
+        Warehouse created = service.create(form, "ivan");
+
+        assertThat(created.getAgents()).containsExactlyInAnyOrder(agentPetar, agentGeorgi);
+    }
+
+    @Test
+    void ownerCannotBeAssignedAsAgent() {
+        when(users.findByUsername("ivan")).thenReturn(Optional.of(owner));
+        when(users.findAllById(Set.of(2L))).thenReturn(List.of(otherOwner));
+
+        WarehouseForm form = validForm();
+        form.setAgentIds(Set.of(2L)); // id на собственик, подаден ръчно във формата
+
+        assertThatThrownBy(() -> service.create(form, "ivan"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("не е складов агент");
+        verify(warehouses, never()).save(any());
+    }
+
+    @Test
+    void unknownAgentIsRejected() {
+        when(users.findByUsername("ivan")).thenReturn(Optional.of(owner));
+        when(users.findAllById(Set.of(99L))).thenReturn(List.of());
+
+        WarehouseForm form = validForm();
+        form.setAgentIds(Set.of(99L));
+
+        assertThatThrownBy(() -> service.create(form, "ivan"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Някой от избраните агенти не съществува.");
+    }
+
+    @Test
+    void updateReplacesAgents() {
+        Warehouse existing = new Warehouse();
+        existing.setOwner(owner);
+        existing.setAgents(new HashSet<>(Set.of(agentPetar)));
+        when(warehouses.findById(3L)).thenReturn(Optional.of(existing));
+        when(users.findAllById(Set.of(6L))).thenReturn(List.of(agentGeorgi));
+        when(warehouses.save(any(Warehouse.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        WarehouseForm form = validForm();
+        form.setAgentIds(Set.of(6L)); // махаме Петър, слагаме Георги
+        Warehouse updated = service.update(3L, form, "ivan");
+
+        assertThat(updated.getAgents()).containsExactly(agentGeorgi);
+    }
+
+    @Test
+    void editFormIsPrefilledWithCurrentAgents() {
+        Warehouse existing = new Warehouse();
+        existing.setOwner(owner);
+        existing.setName("Склад Юг");
+        existing.setAddress("Русе");
+        existing.setAgents(new HashSet<>(Set.of(agentPetar, agentGeorgi)));
+
+        WarehouseForm form = WarehouseForm.from(existing);
+
+        assertThat(form.getAgentIds()).containsExactlyInAnyOrder(5L, 6L);
     }
 }

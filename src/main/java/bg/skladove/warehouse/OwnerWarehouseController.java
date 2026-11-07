@@ -93,7 +93,7 @@ public class OwnerWarehouseController {
         return "redirect:/owner/warehouses";
     }
 
-    /** Несъществуващ склад: връща към списъка със съобщение вместо страница с грешка. */
+    /** Несъществуващ склад или невалиден агент: връща към списъка със съобщение вместо страница с грешка. */
     @ExceptionHandler(IllegalArgumentException.class)
     public String handleNotFound(IllegalArgumentException e, RedirectAttributes redirect) {
         redirect.addFlashAttribute("errorMessage", e.getMessage());
@@ -104,6 +104,7 @@ public class OwnerWarehouseController {
     private String showForm(Model model, Long warehouseId) {
         model.addAttribute("warehouseId", warehouseId);
         model.addAttribute("categories", CATEGORIES);
+        model.addAttribute("agents", warehouseService.findAllAgents());
         return "owner/warehouses/form";
     }
 }
