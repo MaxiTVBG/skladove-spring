@@ -7,7 +7,7 @@
     <style>
         body { font-family: Arial, sans-serif; margin: 40px; background: #f4f6f9; }
         h1 { color: #243b53; }
-        .container { max-width: 1100px; margin: auto; }
+        .container { max-width: 1200px; margin: auto; }
         .card { background: white; padding: 25px; margin-bottom: 25px; border-radius: 8px;
                 box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
         .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
@@ -17,13 +17,16 @@
         .btn-small { padding: 6px 12px; font-size: 14px; }
         .btn-light { background: #e4e7eb; color: #243b53; }
         table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; vertical-align: top; }
         th { background: #245b85; color: white; }
-        .status { padding: 4px 10px; border-radius: 12px; font-size: 13px; font-weight: bold; }
+        .status { padding: 4px 10px; border-radius: 12px; font-size: 13px; font-weight: bold; white-space: nowrap; }
         .AVAILABLE { background: #e5f5e9; color: #187a37; }
         .RENTED { background: #fff4e5; color: #9a5b00; }
         .MAINTENANCE { background: #e8eefc; color: #2f4fa3; }
         .INACTIVE { background: #eeeeee; color: #555; }
+        .chip { display: inline-block; background: #e8eefc; color: #2f4fa3; padding: 3px 9px;
+                border-radius: 10px; font-size: 13px; margin: 0 4px 4px 0; }
+        .no-agent { color: #9a5b00; font-size: 13px; }
         .success { color: #187a37; background: #e5f5e9; padding: 12px; border-radius: 4px; }
         .error { color: #a32121; background: #fde8e8; padding: 12px; border-radius: 4px; }
         .empty { color: #627d98; text-align: center; padding: 30px; }
@@ -58,6 +61,7 @@
                 <th>Категория</th>
                 <th>Вид стока</th>
                 <th>Цена / месец</th>
+                <th>Агенти</th>
                 <th>Статус</th>
                 <th></th>
             </tr>
@@ -70,6 +74,10 @@
                 <td th:text="${w.category}"></td>
                 <td th:text="${w.goodsType} ?: '—'"></td>
                 <td th:text="${#numbers.formatDecimal(w.monthlyPrice, 1, 2)} + ' лв.'"></td>
+                <td>
+                    <span class="chip" th:each="a : ${w.agents}" th:text="${a.fullName}"></span>
+                    <span class="no-agent" th:if="${#sets.isEmpty(w.agents)}">няма избран агент</span>
+                </td>
                 <td>
                     <span class="status" th:classappend="${w.status}"
                           th:switch="${w.status?.name()}">
