@@ -1,0 +1,17 @@
+
+<a th:fragment="bell"
+   class="btn btn-light"
+   th:href="@{/notifications}"
+   style="position: relative; display: inline-flex; align-items: center; gap: 6px;">
+
+    <span>🔔 Известия</span>
+
+    <span th:if="${unreadNotificationCount > 0}"
+          th:text="${unreadNotificationCount}"
+          style="background: #a32121; color: white; border-radius: 50%;
+                 min-width: 19px; height: 19px; display: inline-flex;
+                 align-items: center; justify-content: center;
+                 font-size: 12px; font-weight: bold; padding: 0 3px;">
+    </span>
+
+</a>

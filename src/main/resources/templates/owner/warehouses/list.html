@@ -39,6 +39,7 @@
         <h1>Моите складове</h1>
         <div>
             <a class="btn btn-light" th:href="@{/}">Начало</a>
+            <span th:replace="~{fragments/notifications :: bell}"></span>
             <a class="btn btn-light" th:href="@{/owner/rentals}">Заявки за наем</a>
             <a class="btn btn-light" th:href="@{/owner/ratings}">Оценка на агенти</a>
             <a class="btn" th:href="@{/owner/warehouses/new}">+ Добави склад</a>

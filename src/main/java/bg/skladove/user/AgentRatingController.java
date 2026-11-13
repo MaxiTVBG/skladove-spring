@@ -27,7 +27,7 @@ public class AgentRatingController {
                 ratingService.findRateableContracts(principal.getName())
         );
 
-        return "owner.warehouses/ratings";
+        return "owner/warehouses/ratings";
     }
 
     // Submit an agent rating
