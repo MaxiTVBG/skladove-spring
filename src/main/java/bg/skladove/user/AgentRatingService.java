@@ -101,12 +101,15 @@ public class AgentRatingService {
                         new IllegalArgumentException("Собственикът не е намерен."));
 
         List<RentalContract> completedContracts =
-                contractRepository.findByWarehouse_Owner_IdAndStatus(
-                        owner.getId(), RentalStatus.COMPLETED);
+                contractRepository.findWithDetailsByWarehouse_Owner_IdOrderByCreatedAtDesc(
+                        owner.getId()
+                );
 
         return completedContracts.stream()
                 .filter(contract ->
+                        contract.getStatus() == RentalStatus.COMPLETED)
+                .filter(contract ->
                         !ratingRepository.existsByRentalContractId(contract.getId()))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

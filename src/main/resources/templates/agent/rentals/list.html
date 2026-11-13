@@ -37,7 +37,11 @@
 
     <div class="top">
         <h1>Наеми</h1>
-        <a class="btn btn-light" th:href="@{/}">Начало</a>
+        <div>
+            <a class="btn btn-light" th:href="@{/}">Начало</a>
+            <span th:replace="~{fragments/notifications :: bell}"></span>
+            <a class="btn" th:href="@{/agent/report}">Моята справка</a>
+        </div>
     </div>
     <p>Складов агент: <b sec:authentication="name"></b></p>
 

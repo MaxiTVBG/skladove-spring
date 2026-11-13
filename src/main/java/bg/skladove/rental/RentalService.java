@@ -1,6 +1,8 @@
 
 package bg.skladove.rental;
 
+import bg.skladove.notification.Notification;
+import bg.skladove.notification.NotificationService;
 import bg.skladove.user.AppUser;
 import bg.skladove.user.AppUserRepository;
 import bg.skladove.user.Role;
@@ -19,23 +21,27 @@ import java.time.LocalDateTime;
 @Service
 public class RentalService {
 
-    private static final Logger log = LogManager.getLogger(RentalService.class);
+    private static final Logger log =
+            LogManager.getLogger(RentalService.class);
 
     private final RentalContractRepository contractRepository;
     private final WarehouseRepository warehouseRepository;
     private final AppUserRepository userRepository;
     private final WarehouseAvailabilityService availabilityService;
+    private final NotificationService notificationService;
 
     public RentalService(
             RentalContractRepository contractRepository,
             WarehouseRepository warehouseRepository,
             AppUserRepository userRepository,
-            WarehouseAvailabilityService availabilityService) {
+            WarehouseAvailabilityService availabilityService,
+            NotificationService notificationService) {
 
         this.contractRepository = contractRepository;
         this.warehouseRepository = warehouseRepository;
         this.userRepository = userRepository;
         this.availabilityService = availabilityService;
+        this.notificationService = notificationService;
     }
 
     // Agent creates a rental request
@@ -102,8 +108,19 @@ public class RentalService {
         contract.setStatus(RentalStatus.PENDING_OWNER_APPROVAL);
 
         RentalContract saved = contractRepository.save(contract);
+
+        // Notify the agent about the newly created rental request
+        notificationService.createNotification(
+                agent,
+                Notification.Type.NEW_RENTAL_REQUEST,
+                "Създадена е нова заявка за наем на склад „"
+                        + warehouse.getName() + "“."
+        );
+
         log.info("Агент '{}' създаде заявка #{} за склад '{}' ({} - {})",
-                agent.getUsername(), saved.getId(), warehouse.getName(), startDate, endDate);
+                agent.getUsername(), saved.getId(),
+                warehouse.getName(), startDate, endDate);
+
         return saved;
     }
 
@@ -139,8 +156,17 @@ public class RentalService {
         availabilityService.synchronizeStatus(warehouse);
         warehouseRepository.save(warehouse);
 
+        // Notify the owner that the warehouse has been rented
+        notificationService.createNotification(
+                warehouse.getOwner(),
+                Notification.Type.WAREHOUSE_RENTED,
+                "Заявката за наем на склад „"
+                        + warehouse.getName() + "“ е одобрена."
+        );
+
         log.info("Собственик '{}' одобри заявка #{} за склад '{}'",
                 owner.getUsername(), contract.getId(), warehouse.getName());
+
         return contract;
     }
 
@@ -163,7 +189,9 @@ public class RentalService {
         contract.setDecidedAt(LocalDateTime.now());
         contract.setDecisionNote(note);
 
-        log.info("Собственик '{}' отхвърли заявка #{}", owner.getUsername(), contract.getId());
+        log.info("Собственик '{}' отхвърли заявка #{}",
+                owner.getUsername(), contract.getId());
+
         return contractRepository.save(contract);
     }
 

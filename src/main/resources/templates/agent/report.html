@@ -1,0 +1,209 @@
+
+<!DOCTYPE html>
+<html lang="bg" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Справка на складов агент</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f3f5f8;
+            margin: 0;
+            padding: 30px;
+            color: #263746;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        h1 {
+            color: #245b80;
+        }
+
+        .card {
+            background: white;
+            padding: 24px;
+            margin-top: 20px;
+            border-radius: 9px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .filters {
+            display: flex;
+            align-items: end;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 7px;
+            font-weight: bold;
+        }
+
+        input, button {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            background: #245b80;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #194463;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background: white;
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            background: #245b80;
+            color: white;
+        }
+
+        .empty {
+            text-align: center;
+            color: #718096;
+            padding: 30px;
+        }
+
+        .rating {
+            font-size: 24px;
+            font-weight: bold;
+            color: #245b80;
+        }
+
+        .back {
+            display: inline-block;
+            margin-top: 20px;
+            color: #245b80;
+            text-decoration: none;
+        }
+
+        .back:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <h1>Справка на складов агент</h1>
+
+    <!-- Date filter -->
+    <div class="card">
+        <h2>Избор на период</h2>
+
+        <form th:action="@{/agent/report}" method="get" class="filters">
+            <div>
+                <label for="from">От дата:</label>
+                <input type="date" id="from" name="from"
+                       th:value="${from}" required>
+            </div>
+
+            <div>
+                <label for="to">До дата:</label>
+                <input type="date" id="to" name="to"
+                       th:value="${to}" required>
+            </div>
+
+            <button type="submit">Покажи справка</button>
+        </form>
+    </div>
+
+    <!-- Agent rating -->
+    <div class="card">
+        <h2>Представяне на складовия агент</h2>
+
+        <p>Средна оценка:</p>
+
+        <p class="rating"
+           th:if="${agentRating != null}"
+           th:text="${#numbers.formatDecimal(agentRating, 1, 2)} + ' / 5'">
+        </p>
+
+        <p th:if="${agentRating == null}">
+            Все още няма получени оценки.
+        </p>
+    </div>
+
+    <!-- Completed rental contracts -->
+    <div class="card">
+        <h2>Сключени договори</h2>
+
+        <p>
+            Период:
+            <strong th:text="${from}"></strong>
+            –
+            <strong th:text="${to}"></strong>
+        </p>
+
+        <p>
+            Брой сключени договори:
+            <strong th:text="${contracts.size()}"></strong>
+        </p>
+
+        <div th:if="${#lists.isEmpty(contracts)}" class="empty">
+            Няма сключени договори за избрания период.
+        </div>
+
+        <div th:unless="${#lists.isEmpty(contracts)}">
+            <table>
+                <thead>
+                <tr>
+                    <th>№</th>
+                    <th>Склад</th>
+                    <th>Наемател</th>
+                    <th>Телефон</th>
+                    <th>Имейл</th>
+                    <th>Начална дата</th>
+                    <th>Крайна дата</th>
+                    <th>Цена</th>
+                    <th>Статус</th>
+                </tr>
+                </thead>
+
+                <tbody>
+                <tr th:each="contract : ${contracts}">
+                    <td th:text="${contract.id}"></td>
+                    <td th:text="${contract.warehouse.name}"></td>
+                    <td th:text="${contract.tenantName}"></td>
+                    <td th:text="${contract.tenantPhone ?: '-'}"></td>
+                    <td th:text="${contract.tenantEmail ?: '-'}"></td>
+                    <td th:text="${contract.startDate}"></td>
+                    <td th:text="${contract.endDate}"></td>
+                    <td th:text="${contract.price + ' лв.'}"></td>
+                    <td th:text="${contract.status}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <a class="back" th:href="@{/}">
+        Обратно към началната страница
+    </a>
+
+</div>
+</body>
+</html>
