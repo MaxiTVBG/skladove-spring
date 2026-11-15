@@ -6,6 +6,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.math.BigDecimal;
 import java.security.Principal;
 import java.time.LocalDate;
 import java.util.List;
@@ -22,9 +23,12 @@ public class ReportController {
     static final List<String> CATEGORIES = List.of("A", "B", "C");
 
     private final AvailableWarehouseReportService availableReport;
+    private final OwnerWarehouseReportService ownerReport;
 
-    public ReportController(AvailableWarehouseReportService availableReport) {
+    public ReportController(AvailableWarehouseReportService availableReport,
+                            OwnerWarehouseReportService ownerReport) {
         this.availableReport = availableReport;
+        this.ownerReport = ownerReport;
     }
 
     /**
@@ -56,5 +60,42 @@ public class ReportController {
             model.addAttribute("errorMessage", e.getMessage());
         }
         return "reports/available";
+    }
+
+    /**
+     * Складовете на собственика за период (задача №14).
+     * Адресът е под /owner/**, затова е достъпен само за роля OWNER.
+     * По подразбиране периодът е текущият месец.
+     */
+    @GetMapping("/owner/reports/warehouses")
+    public String ownerWarehouses(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                                  @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+                                  Model model,
+                                  Principal principal) {
+        LocalDate today = LocalDate.now();
+        LocalDate periodFrom = from != null ? from : today.withDayOfMonth(1);
+        LocalDate periodTo = to != null ? to : today.withDayOfMonth(today.lengthOfMonth());
+
+        model.addAttribute("from", periodFrom);
+        model.addAttribute("to", periodTo);
+
+        List<OwnerWarehouseReportRow> rows;
+        try {
+            rows = ownerReport.build(principal.getName(), periodFrom, periodTo);
+        } catch (IllegalArgumentException e) {
+            rows = List.of();
+            model.addAttribute("errorMessage", e.getMessage());
+        }
+        model.addAttribute("rows", rows);
+
+        // Обобщение най-горе на страницата
+        model.addAttribute("totalContracts", rows.stream().mapToInt(r -> r.getContracts().size()).sum());
+        model.addAttribute("totalAmount", rows.stream()
+                .map(OwnerWarehouseReportRow::getContractsTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
+        model.addAttribute("averageOccupancy", (int) Math.round(rows.stream()
+                .mapToInt(OwnerWarehouseReportRow::getOccupancyPercent)
+                .average().orElse(0)));
+        return "owner/reports/warehouses";
     }
 }

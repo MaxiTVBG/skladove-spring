@@ -3,8 +3,11 @@ package bg.skladove.rental;
 import bg.skladove.user.AppUser;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 
 public interface RentalContractRepository
@@ -56,4 +59,22 @@ public interface RentalContractRepository
 
     @EntityGraph(attributePaths = {"warehouse", "agent", "decidedBy"})
     List<RentalContract> findWithDetailsByWarehouse_Owner_IdOrderByCreatedAtDesc(Long ownerId);
+
+    // Справка „Складове на собственик“ (задача №14): договорите за складовете на собственика,
+    // които се застъпват с периода [from, to]. Застъпване значи: започва до края на периода
+    // и свършва след началото му. JOIN FETCH зарежда склада и агента в същата заявка.
+    @Query("""
+            select c from RentalContract c
+            join fetch c.warehouse w
+            join fetch c.agent
+            where w.owner.id = :ownerId
+              and c.status in :statuses
+              and c.startDate <= :to
+              and c.endDate >= :from
+            order by c.startDate
+            """)
+    List<RentalContract> findOwnerContractsInPeriod(@Param("ownerId") Long ownerId,
+                                                    @Param("statuses") Collection<RentalStatus> statuses,
+                                                    @Param("from") LocalDate from,
+                                                    @Param("to") LocalDate to);
 }
