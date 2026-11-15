@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="bg" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Справка: налични складове - Складове</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f4f6f9; }
+        h1 { color: #243b53; }
+        .container { max-width: 1250px; margin: auto; }
+        .card { background: white; padding: 25px; margin-bottom: 25px; border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+        .btn { display: inline-block; padding: 10px 18px; border: none; border-radius: 4px;
+               background: #245b85; color: white; text-decoration: none; cursor: pointer; font-size: 14px; }
+        .btn:hover { background: #17466d; }
+        .btn-small { padding: 6px 12px; }
+        .btn-light { background: #e4e7eb; color: #243b53; }
+        .filters { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+        .filters label { display: block; font-weight: bold; color: #334e68; font-size: 13px; margin-bottom: 4px; }
+        .filters input, .filters select { padding: 9px; border: 1px solid #ccc; border-radius: 4px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 11px; text-align: left; border-bottom: 1px solid #ddd; vertical-align: top; }
+        th { background: #245b85; color: white; }
+        .status { padding: 4px 10px; border-radius: 12px; font-size: 13px; font-weight: bold; white-space: nowrap; }
+        .AVAILABLE { background: #e5f5e9; color: #187a37; }
+        .RENTED { background: #fff4e5; color: #9a5b00; }
+        .muted { color: #829ab1; font-size: 13px; }
+        .summary { color: #486581; margin: 0 0 12px; }
+        .error { color: #a32121; background: #fde8e8; padding: 12px; border-radius: 4px; }
+        .empty { color: #627d98; text-align: center; padding: 20px; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="top">
+        <h1>Справка: налични складове</h1>
+        <div>
+            <a class="btn btn-light" th:href="@{/}">Начало</a>
+            <a class="btn btn-light" sec:authorize="hasRole('AGENT')" th:href="@{/agent/rentals}">Наеми</a>
+            <a class="btn btn-light" sec:authorize="hasRole('OWNER')" th:href="@{/owner/warehouses}">Моите складове</a>
+        </div>
+    </div>
+    <p class="muted" sec:authorize="hasRole('AGENT')">Показват се складовете, към които сте назначен като агент.</p>
+    <p class="muted" sec:authorize="hasRole('OWNER')">Показват се само вашите складове.</p>
+
+    <!-- Филтри: GET форма, затова параметрите остават в адреса -->
+    <div class="card">
+        <form class="filters" th:action="@{/reports/available}" method="get">
+            <div>
+                <label for="from">От дата</label>
+                <input id="from" type="date" name="from" th:value="${from}">
+            </div>
+            <div>
+                <label for="to">До дата</label>
+                <input id="to" type="date" name="to" th:value="${to}">
+            </div>
+            <div>
+                <label for="category">Категория</label>
+                <select id="category" name="category">
+                    <option value="">всички</option>
+                    <option th:each="c : ${categories}" th:value="${c}" th:text="${c}"
+                            th:selected="${c == category}"></option>
+                </select>
+            </div>
+            <div>
+                <label for="search">Търсене</label>
+                <input id="search" type="text" name="search" th:value="${search}"
+                       placeholder="адрес, вид стока, климат">
+            </div>
+            <div>
+                <button class="btn" type="submit">Покажи</button>
+            </div>
+        </form>
+    </div>
+
+    <p class="error" th:if="${errorMessage}" th:text="${errorMessage}"></p>
+
+    <div class="card">
+        <p class="summary" th:unless="${errorMessage}">
+            Свободни за целия период
+            <b th:text="${#temporals.format(from, 'dd.MM.yyyy')} + ' – ' + ${#temporals.format(to, 'dd.MM.yyyy')}"></b>:
+            <b th:text="${#lists.size(rows)}"></b>
+        </p>
+        <p class="empty" th:if="${#lists.isEmpty(rows)}">Няма свободни складове за избрания период.</p>
+
+        <table th:unless="${#lists.isEmpty(rows)}">
+            <thead>
+            <tr>
+                <th>Склад</th>
+                <th>Адрес</th>
+                <th>Вид на склада</th>
+                <th>Площ (м²)</th>
+                <th>Цена / месец</th>
+                <th>Статус днес</th>
+                <th>Свободен от</th>
+                <th>Свободен до</th>
+                <th sec:authorize="hasRole('AGENT')"></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="row : ${rows}" th:with="w=${row.warehouse}">
+                <td>
+                    <b th:text="${w.name}"></b><br>
+                    <span class="muted" th:text="'собственик: ' + ${w.owner.fullName}"></span>
+                </td>
+                <td th:text="${w.address}"></td>
+                <td>
+                    <span th:text="'Категория ' + ${w.category}"></span><br>
+                    <span class="muted" th:text="${w.goodsType}"></span>
+                    <span class="muted" th:if="${w.climateConditions}" th:text="' · ' + ${w.climateConditions}"></span>
+                </td>
+                <td th:text="${w.area}"></td>
+                <td th:text="${#numbers.formatDecimal(w.monthlyPrice, 1, 2)} + ' лв.'"></td>
+                <td>
+                    <span class="status" th:classappend="${w.status}" th:switch="${w.status?.name()}">
+                        <span th:case="'AVAILABLE'">Свободен</span>
+                        <span th:case="'RENTED'">Нает</span>
+                    </span>
+                </td>
+                <td th:text="${row.freeSince != null} ? ${#temporals.format(row.freeSince, 'dd.MM.yyyy')} : 'отдавна'"></td>
+                <td th:text="${row.freeUntil != null} ? ${#temporals.format(row.freeUntil, 'dd.MM.yyyy')} : 'без ограничение'"></td>
+                <td sec:authorize="hasRole('AGENT')">
+                    <a class="btn btn-small" th:href="@{/agent/rentals/new(warehouseId=${w.id})}">Нова заявка</a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+</div>
+</body>
+</html>
