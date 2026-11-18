@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="bg" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Справка: моите складове - Складове</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f4f6f9; }
+        h1 { color: #243b53; }
+        .container { max-width: 1250px; margin: auto; }
+        .card { background: white; padding: 25px; margin-bottom: 25px; border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+        .btn { display: inline-block; padding: 10px 18px; border: none; border-radius: 4px;
+               background: #245b85; color: white; text-decoration: none; cursor: pointer; font-size: 14px; }
+        .btn:hover { background: #17466d; }
+        .btn-light { background: #e4e7eb; color: #243b53; }
+        .filters { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+        .filters label { display: block; font-weight: bold; color: #334e68; font-size: 13px; margin-bottom: 4px; }
+        .filters input { padding: 9px; border: 1px solid #ccc; border-radius: 4px; }
+        .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 25px; }
+        .stat { background: white; border-radius: 8px; padding: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .stat .label { color: #627d98; font-size: 13px; }
+        .stat .value { color: #243b53; font-size: 26px; font-weight: bold; margin-top: 6px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 11px; text-align: left; border-bottom: 1px solid #ddd; vertical-align: top; }
+        th { background: #245b85; color: white; }
+        .bar { background: #e4e7eb; border-radius: 6px; height: 10px; width: 120px; overflow: hidden; margin-top: 4px; }
+        .bar span { display: block; height: 100%; background: #187a37; }
+        .status { padding: 3px 9px; border-radius: 12px; font-size: 12px; font-weight: bold; white-space: nowrap; }
+        .ACTIVE { background: #e5f5e9; color: #187a37; }
+        .COMPLETED { background: #e8eefc; color: #2f4fa3; }
+        .muted { color: #829ab1; font-size: 13px; }
+        details summary { cursor: pointer; color: #245b85; font-size: 14px; }
+        .contracts { margin: 8px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.7; }
+        .error { color: #a32121; background: #fde8e8; padding: 12px; border-radius: 4px; }
+        .empty { color: #627d98; text-align: center; padding: 20px; }
+        @media (max-width: 800px) { .stats { grid-template-columns: 1fr 1fr; } }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="top">
+        <h1>Справка: моите складове</h1>
+        <div>
+            <a class="btn btn-light" th:href="@{/}">Начало</a>
+            <span th:replace="~{fragments/notifications :: bell}"></span>
+            <a class="btn btn-light" th:href="@{/owner/warehouses}">Моите складове</a>
+            <a class="btn btn-light" th:href="@{/owner/rentals}">Заявки за наем</a>
+        </div>
+    </div>
+    <p>Собственик: <b sec:authentication="name"></b></p>
+
+    <div class="card">
+        <form class="filters" th:action="@{/owner/reports/warehouses}" method="get">
+            <div>
+                <label for="from">От дата</label>
+                <input id="from" type="date" name="from" th:value="${from}">
+            </div>
+            <div>
+                <label for="to">До дата</label>
+                <input id="to" type="date" name="to" th:value="${to}">
+            </div>
+            <div>
+                <button class="btn" type="submit">Покажи</button>
+            </div>
+        </form>
+    </div>
+
+    <p class="error" th:if="${errorMessage}" th:text="${errorMessage}"></p>
+
+    <!-- Обобщение за периода -->
+    <div class="stats" th:unless="${errorMessage}">
+        <div class="stat">
+            <div class="label">Складове</div>
+            <div class="value" th:text="${#lists.size(rows)}">0</div>
+        </div>
+        <div class="stat">
+            <div class="label">Договори в периода</div>
+            <div class="value" th:text="${totalContracts}">0</div>
+        </div>
+        <div class="stat">
+            <div class="label">Средна заетост</div>
+            <div class="value" th:text="${averageOccupancy} + ' %'">0 %</div>
+        </div>
+        <div class="stat">
+            <div class="label">Сума по договорите</div>
+            <div class="value" th:text="${#numbers.formatDecimal(totalAmount, 1, 2)} + ' лв.'">0</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <p class="muted" th:unless="${errorMessage}">
+            Период <b th:text="${#temporals.format(from, 'dd.MM.yyyy')} + ' – ' + ${#temporals.format(to, 'dd.MM.yyyy')}"></b>.
+            Броят се активни и приключили договори, които се застъпват с периода.
+        </p>
+        <p class="empty" th:if="${#lists.isEmpty(rows)}">Нямате складове.</p>
+
+        <table th:unless="${#lists.isEmpty(rows)}">
+            <thead>
+            <tr>
+                <th>Склад</th>
+                <th>Статус днес</th>
+                <th>Договори</th>
+                <th>Наети дни</th>
+                <th>Заетост</th>
+                <th>Сума по договорите</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="row : ${rows}" th:with="w=${row.warehouse}">
+                <td>
+                    <b th:text="${w.name}"></b><br>
+                    <span class="muted" th:text="${w.address}"></span><br>
+                    <span class="muted" th:text="'Категория ' + ${w.category} + ' · ' + ${w.area} + ' м²'"></span>
+                </td>
+                <td th:switch="${w.status?.name()}">
+                    <span th:case="'AVAILABLE'">Свободен</span>
+                    <span th:case="'RENTED'">Нает</span>
+                    <span th:case="'MAINTENANCE'">Ремонт</span>
+                    <span th:case="'INACTIVE'">Неактивен</span>
+                </td>
+                <td>
+                    <span th:text="${#lists.size(row.contracts)}"></span>
+                    <!-- Подробности: разгъва се с клик, без JavaScript -->
+                    <details th:unless="${#lists.isEmpty(row.contracts)}">
+                        <summary>покажи</summary>
+                        <ul class="contracts">
+                            <li th:each="c : ${row.contracts}">
+                                <span th:text="${#temporals.format(c.startDate, 'dd.MM.yyyy')} + ' – ' + ${#temporals.format(c.endDate, 'dd.MM.yyyy')}"></span>,
+                                <span th:text="${c.tenantName}"></span>,
+                                агент <span th:text="${c.agent.fullName}"></span>,
+                                <span th:text="${#numbers.formatDecimal(c.price, 1, 2)} + ' лв.'"></span>
+                                <span class="status" th:classappend="${c.status}"
+                                      th:text="${c.status.name() == 'ACTIVE'} ? 'Активен' : 'Приключил'"></span>
+                            </li>
+                        </ul>
+                    </details>
+                </td>
+                <td th:text="${row.rentedDays} + ' от ' + ${row.periodDays}"></td>
+                <td>
+                    <span th:text="${row.occupancyPercent} + ' %'"></span>
+                    <div class="bar"><span th:style="'width:' + ${row.occupancyPercent} + '%'"></span></div>
+                </td>
+                <td th:text="${#numbers.formatDecimal(row.contractsTotal, 1, 2)} + ' лв.'"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+</div>
+</body>
+</html>
