@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="bg" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Препоръка на склад - Складове</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f4f6f9; color: #243b53; }
+        h1 { color: #243b53; }
+        .container { max-width: 1100px; margin: auto; }
+        .card { background: white; padding: 25px; margin-bottom: 20px; border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+        .btn { display: inline-block; padding: 10px 18px; border: none; border-radius: 4px;
+               background: #245b85; color: white; text-decoration: none; cursor: pointer; font-size: 14px; }
+        .btn:hover { background: #17466d; }
+        .btn-light { background: #e4e7eb; color: #243b53; }
+        .btn-ai { background: #6b3fa0; }
+        .btn-ai:hover { background: #532f7d; }
+        .filters { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; align-items: end; }
+        .filters label { display: block; font-weight: bold; color: #334e68; font-size: 13px; margin-bottom: 4px; }
+        .filters input, .filters select { width: 100%; padding: 9px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .hint { color: #627d98; font-size: 13px; margin: 12px 0 0; }
+        .error { color: #a32121; background: #fde8e8; padding: 12px; border-radius: 4px; }
+        .empty { color: #627d98; text-align: center; padding: 20px; }
+        .match { display: grid; grid-template-columns: 110px 1fr 220px; gap: 20px; align-items: start; }
+        .score { text-align: center; }
+        .score .value { font-size: 30px; font-weight: bold; color: #6b3fa0; }
+        .score .label { color: #627d98; font-size: 12px; }
+        .bar { background: #e4e7eb; border-radius: 6px; height: 8px; overflow: hidden; margin-top: 6px; }
+        .bar span { display: block; height: 100%; background: #6b3fa0; }
+        .name { font-size: 17px; font-weight: bold; }
+        .muted { color: #627d98; font-size: 13px; }
+        ul.reasons { list-style: none; padding: 0; margin: 10px 0 0; font-size: 14px; line-height: 1.7; }
+        .pro::before { content: "✓ "; color: #187a37; font-weight: bold; }
+        .con::before { content: "! "; color: #b45309; font-weight: bold; }
+        .price { font-size: 20px; font-weight: bold; }
+        .deal { display: inline-block; background: #e5f5e9; color: #187a37; font-size: 12px; font-weight: bold;
+                padding: 3px 9px; border-radius: 12px; margin-top: 6px; }
+        .side .btn { margin-top: 12px; }
+        @media (max-width: 800px) { .filters, .match { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="top">
+        <h1>Препоръка на склад (AI)</h1>
+        <div>
+            <a class="btn btn-light" th:href="@{/}">Начало</a>
+            <span th:replace="~{fragments/notifications :: bell}"></span>
+            <a class="btn btn-light" th:href="@{/agent/rentals}">Наеми</a>
+        </div>
+    </div>
+    <p>Агент: <b sec:authentication="name"></b></p>
+
+    <div class="card">
+        <form th:action="@{/agent/ai/recommend}" method="get">
+            <div class="filters">
+                <div>
+                    <label for="area">Нужна площ (м²) *</label>
+                    <input id="area" type="number" name="area" min="1" step="any" required th:value="${area}">
+                </div>
+                <div>
+                    <label for="climate">Климат за стоката</label>
+                    <select id="climate" name="climate">
+                        <option value="">без значение</option>
+                        <option th:each="c : ${climates}" th:value="${c.label}" th:text="${c.label}"
+                                th:selected="${climate == c.label}"></option>
+                    </select>
+                </div>
+                <div>
+                    <label for="goodsType">Вид стока</label>
+                    <input id="goodsType" type="text" name="goodsType" th:value="${goodsType}" placeholder="напр. хранителни продукти">
+                </div>
+                <div>
+                    <label for="category">Категория</label>
+                    <select id="category" name="category">
+                        <option value="">без значение</option>
+                        <option th:each="c : ${categories}" th:value="${c}" th:text="${c}" th:selected="${category == c}"></option>
+                    </select>
+                </div>
+                <div>
+                    <label for="budget">Бюджет на месец (лв.)</label>
+                    <input id="budget" type="number" name="budget" min="0" step="any" th:value="${budget}">
+                </div>
+                <div>
+                    <label for="from">От дата</label>
+                    <input id="from" type="date" name="from" th:value="${from}">
+                </div>
+                <div>
+                    <label for="to">До дата</label>
+                    <input id="to" type="date" name="to" th:value="${to}">
+                </div>
+                <div>
+                    <button class="btn btn-ai" type="submit">Препоръчай</button>
+                </div>
+            </div>
+            <p class="hint">
+                Търси се сред свободните за периода складове, към които сте назначен.
+                Съвпадението се изчислява по площ (30%), климат (30%), бюджет (25%), вид стока (10%) и категория (5%).
+                Складове с неподходящ климат не се препоръчват.
+            </p>
+        </form>
+    </div>
+
+    <p class="error" th:if="${errorMessage}" th:text="${errorMessage}"></p>
+
+    <div class="card" th:if="${matches != null and #lists.isEmpty(matches)}">
+        <p class="empty">Няма свободен склад, който да отговаря на изискванията за този период.</p>
+    </div>
+
+    <div class="card" th:each="m : ${matches}" th:with="w=${m.warehouse()}">
+        <div class="match">
+            <div class="score">
+                <div class="value" th:text="${m.matchPercent()} + '%'">0%</div>
+                <div class="label">съвпадение</div>
+                <div class="bar"><span th:style="'width:' + ${m.matchPercent()} + '%'"></span></div>
+            </div>
+            <div>
+                <div class="name" th:text="${w.name}"></div>
+                <div class="muted" th:text="${w.address}"></div>
+                <div class="muted"
+                     th:text="'Категория ' + ${w.category} + ' · ' + ${w.area} + ' м² · ' + ${w.climateConditions} + ' · ' + ${w.goodsType}"></div>
+                <ul class="reasons">
+                    <li class="pro" th:each="p : ${m.pros()}" th:text="${p}"></li>
+                    <li class="con" th:each="c : ${m.cons()}" th:text="${c}"></li>
+                </ul>
+            </div>
+            <div class="side">
+                <div class="price" th:text="${#numbers.formatDecimal(w.monthlyPrice, 1, 2)} + ' лв./месец'"></div>
+                <div class="muted" th:if="${m.estimatedPrice() != null}">
+                    AI оценка на пазарната цена:
+                    <b th:text="${m.estimatedPrice()} + ' лв.'"></b>
+                    <span th:if="${m.priceVsEstimatePercent() != null}"
+                          th:text="'(' + (${m.priceVsEstimatePercent() > 0} ? '+' : '') + ${m.priceVsEstimatePercent()} + '%)'"></span>
+                </div>
+                <span class="deal" th:if="${m.isGoodDeal()}">Изгодна цена</span>
+                <div>
+                    <a class="btn" th:href="@{/agent/rentals/new(warehouseId=${w.id}, from=${from}, to=${to})}">Нова заявка</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

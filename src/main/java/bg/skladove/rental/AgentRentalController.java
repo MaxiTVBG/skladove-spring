@@ -3,6 +3,7 @@ package bg.skladove.rental;
 import bg.skladove.user.Role;
 import bg.skladove.warehouse.Warehouse;
 import jakarta.validation.Valid;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -49,14 +50,21 @@ public class AgentRentalController {
         return "agent/rentals/list";
     }
 
-    /** Празен формуляр за наем на избран склад. Цената се попълва с месечната цена на склада. */
+    /**
+     * Празен формуляр за наем на избран склад. Цената се попълва с месечната цена на склада.
+     * Ако се идва от препоръката на склад, периодът (from, to) също се попълва.
+     */
     @GetMapping("/rentals/new")
-    public String form(@RequestParam Long warehouseId, Model model, Principal principal) {
+    public String form(@RequestParam Long warehouseId,
+                       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+                       Model model, Principal principal) {
         Warehouse warehouse = queries.warehouseForAgent(warehouseId, principal.getName());
 
         RentalRequestForm form = new RentalRequestForm();
         form.setWarehouseId(warehouseId);
-        form.setStartDate(LocalDate.now());
+        form.setStartDate(from != null ? from : LocalDate.now());
+        form.setEndDate(to);
         form.setPrice(warehouse.getMonthlyPrice());
 
         model.addAttribute("rentalForm", form);
