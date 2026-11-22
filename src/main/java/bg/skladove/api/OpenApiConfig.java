@@ -3,8 +3,11 @@ package bg.skladove.api;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.responses.ApiResponse;
+import io.swagger.v3.oas.models.responses.ApiResponses;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -48,5 +51,25 @@ public class OpenApiConfig {
                         .name("JSESSIONID")
                         .description("Бисквитката на сесията след вход през /login")))
                 .addSecurityItem(new SecurityRequirement().addList(SESSION_SCHEME));
+    }
+
+    /**
+     * Всички адреси изискват вход и определена роля, затова 401 и 403 се добавят
+     * към всеки endpoint тук, вместо да се пишат при всеки метод поотделно.
+     */
+    @Bean
+    public OpenApiCustomizer securityResponses() {
+        return openApi -> openApi.getPaths().values().forEach(path ->
+                path.readOperations().forEach(operation -> {
+                    ApiResponses responses = operation.getResponses();
+                    if (!responses.containsKey("401")) {
+                        responses.addApiResponse("401", new ApiResponse()
+                                .description("Не сте влезли в системата (влезте през /login)"));
+                    }
+                    if (!responses.containsKey("403")) {
+                        responses.addApiResponse("403", new ApiResponse()
+                                .description("Нямате права – адресът е за друга роля"));
+                    }
+                }));
     }
 }

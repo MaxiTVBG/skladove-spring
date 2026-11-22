@@ -77,6 +77,9 @@ class ApiIntegrationTest {
                 .andExpect(jsonPath("$.paths['/owner/api/ai/price-recommendation']").exists())
                 .andExpect(jsonPath("$.paths['/agent/api/ai/recommend']").exists())
                 .andExpect(jsonPath("$.paths['/api/reports/available']").exists())
+                // 401 и 403 са описани при всеки endpoint
+                .andExpect(jsonPath("$.paths['/owner/api/warehouses'].get.responses['401']").exists())
+                .andExpect(jsonPath("$.paths['/agent/api/rentals'].get.responses['403']").exists())
                 // HTML страниците не са част от API документацията
                 .andExpect(jsonPath("$.paths['/owner/warehouses']").doesNotExist());
     }
