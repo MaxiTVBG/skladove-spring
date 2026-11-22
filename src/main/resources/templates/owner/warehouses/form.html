@@ -29,6 +29,17 @@
                color: white; text-decoration: none; cursor: pointer; font-size: 15px; }
         .btn:hover { background: #17466d; }
         .btn-light { background: #e4e7eb; color: #243b53; }
+        .ai-box { border: 1px dashed #9fb3c8; border-radius: 6px; padding: 14px; margin: 6px 0 10px; background: #f8fbff; }
+        .ai-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+        .ai-head .hint { margin: 0; }
+        .btn-ai { background: #6b3fa0; }
+        .btn-ai:hover { background: #532f7d; }
+        .ai-price { font-size: 16px; margin: 14px 0 8px; }
+        .ai-range { color: #627d98; font-size: 13px; }
+        .ai-error { color: #a32121; background: #fde8e8; padding: 10px; border-radius: 4px; margin: 10px 0 0; }
+        .ai-neighbors { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+        .ai-neighbors th, .ai-neighbors td { padding: 6px; border-bottom: 1px solid #e4e7eb; text-align: left; }
+        .ai-neighbors th { color: #627d98; font-weight: normal; }
         @media (max-width: 700px) { .grid, .agents { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -106,6 +117,31 @@
                 </div>
             </div>
 
+            <!-- Задача №15: AI препоръка за цена. JavaScript-ът най-долу праща площта, височината,
+                 категорията и климата към /owner/api/ai/price-recommendation и показва резултата тук. -->
+            <div class="ai-box" id="ai-box"
+                 th:attr="data-url=@{/owner/api/ai/price-recommendation},data-warehouse-id=${warehouseId}">
+                <div class="ai-head">
+                    <button class="btn btn-ai" type="button" id="ai-price-btn">Предложи цена (AI)</button>
+                    <span class="hint">Попълнете поне площта. Цената се изчислява от най-подобните складове.
+                        <a th:href="@{/owner/ai/price-model}" target="_blank">Как работи?</a></span>
+                </div>
+                <p class="ai-error" id="ai-error" hidden></p>
+                <div id="ai-result" hidden>
+                    <p class="ai-price">
+                        Препоръчана цена: <b id="ai-recommended"></b> лв./месец
+                        <span class="ai-range">(подобните складове: <span id="ai-min"></span> – <span id="ai-max"></span> лв.)</span>
+                    </p>
+                    <button class="btn btn-light" type="button" id="ai-use-btn">Използвай тази цена</button>
+                    <table class="ai-neighbors">
+                        <thead>
+                        <tr><th>Подобен склад</th><th>Площ</th><th>Кат.</th><th>Климат</th><th>Цена/м²</th><th>Подобие</th></tr>
+                        </thead>
+                        <tbody id="ai-neighbors"></tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- Задача №11: избор на складови агенти -->
             <h2>Складови агенти</h2>
             <span class="hint">Изберете един или повече агенти, които могат да отдават този склад под наем.
@@ -139,5 +175,79 @@
     </div>
 
 </div>
+
+<script>
+    // AI препоръка за цена (задача №15)
+    (function () {
+        const box = document.getElementById('ai-box');
+        const errorBox = document.getElementById('ai-error');
+        const resultBox = document.getElementById('ai-result');
+        let recommended = null;
+
+        function showError(message) {
+            resultBox.hidden = true;
+            errorBox.textContent = message;
+            errorBox.hidden = false;
+        }
+
+        function cell(row, text) {
+            const td = document.createElement('td');
+            td.textContent = text == null ? '-' : text;   // textContent: без HTML от отговора
+            row.appendChild(td);
+        }
+
+        document.getElementById('ai-price-btn').addEventListener('click', async function () {
+            const params = new URLSearchParams();
+            const fields = { area: 'area', height: 'height', category: 'category', climate: 'climateConditions' };
+            for (const [param, id] of Object.entries(fields)) {
+                const value = document.getElementById(id).value.trim();
+                if (value) params.append(param, value);
+            }
+            if (box.dataset.warehouseId) params.append('warehouseId', box.dataset.warehouseId);
+
+            if (!params.has('area')) {
+                showError('Въведете площ, за да се изчисли цена.');
+                return;
+            }
+
+            let data;
+            try {
+                const response = await fetch(box.dataset.url + '?' + params, { headers: { 'Accept': 'application/json' } });
+                data = await response.json();
+                if (!response.ok) {
+                    showError(data.error || 'Неуспешна препоръка.');
+                    return;
+                }
+            } catch (e) {
+                showError('Неуспешна връзка със сървъра. Опитайте отново.');
+                return;
+            }
+
+            recommended = data.recommendedPrice;
+            document.getElementById('ai-recommended').textContent = data.recommendedPrice;
+            document.getElementById('ai-min').textContent = data.minPrice;
+            document.getElementById('ai-max').textContent = data.maxPrice;
+
+            const body = document.getElementById('ai-neighbors');
+            body.replaceChildren();
+            for (const n of data.neighbors) {
+                const row = document.createElement('tr');
+                cell(row, n.source);
+                cell(row, n.area + ' м²');
+                cell(row, n.category);
+                cell(row, n.climate);
+                cell(row, n.pricePerSquareMeter + ' лв.');
+                cell(row, n.similarityPercent + ' %');
+                body.appendChild(row);
+            }
+            errorBox.hidden = true;
+            resultBox.hidden = false;
+        });
+
+        document.getElementById('ai-use-btn').addEventListener('click', function () {
+            if (recommended != null) document.getElementById('monthlyPrice').value = recommended;
+        });
+    })();
+</script>
 </body>
 </html>

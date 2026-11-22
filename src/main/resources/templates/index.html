@@ -14,6 +14,7 @@
     <li sec:authorize="hasRole('OWNER')"><a href="/owner/rentals">Заявки за наем</a></li>
     <li sec:authorize="hasRole('OWNER')"><a href="/owner/reports/warehouses">Справка: моите складове</a></li>
     <li sec:authorize="hasRole('AGENT')"><a href="/agent">Наеми</a></li>
+    <li sec:authorize="hasRole('AGENT')"><a href="/agent/ai/recommend">Препоръка на склад (AI)</a></li>
     <li sec:authorize="hasAnyRole('OWNER', 'AGENT')"><a href="/reports/available">Справка: налични складове</a></li>
 </ul>
 <form th:action="@{/logout}" method="post">
