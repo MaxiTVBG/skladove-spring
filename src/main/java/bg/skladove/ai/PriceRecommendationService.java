@@ -9,7 +9,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -48,6 +50,33 @@ public class PriceRecommendationService {
         PriceRecommendation result = new KnnPriceModel(data).recommend(query, KnnPriceModel.DEFAULT_K);
         log.info("AI препоръка за цена: площ {} м², категория {}, климат {} -> {} лв. (от {} склада)",
                 query.area(), query.category(), query.climate(), result.recommendedPrice(), data.size());
+        return result;
+    }
+
+    /**
+     * Оценка на пазарната цена на вече съществуващи складове (използва се в препоръката на склад).
+     * Всеки склад се оценява от останалите данни, без собствената си цена.
+     *
+     * @return id на склада -> оценена месечна цена; складове без площ липсват в резултата
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, BigDecimal> estimateMarketPrices(List<Warehouse> targets) {
+        List<PriceSample> all = trainingData(null);
+        Map<Long, BigDecimal> result = new HashMap<>();
+        for (Warehouse w : targets) {
+            if (w.getArea() == null || w.getArea() <= 0) {
+                continue;
+            }
+            List<PriceSample> others = all.stream()
+                    .filter(s -> s.warehouseId() == null || !s.warehouseId().equals(w.getId()))
+                    .toList();
+            if (others.size() < MIN_TRAINING_SIZE) {
+                continue;
+            }
+            result.put(w.getId(), new KnnPriceModel(others)
+                    .recommend(toFeatures(w), KnnPriceModel.DEFAULT_K)
+                    .recommendedPrice());
+        }
         return result;
     }
 
