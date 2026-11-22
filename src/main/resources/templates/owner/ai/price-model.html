@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="bg" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Как работи препоръката за цена - Складове</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f4f6f9; color: #243b53; }
+        h1 { color: #243b53; }
+        h2 { font-size: 18px; margin: 0 0 12px; }
+        .container { max-width: 1000px; margin: auto; }
+        .card { background: white; padding: 25px; margin-bottom: 25px; border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08); line-height: 1.6; }
+        .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+        .btn { display: inline-block; padding: 10px 18px; border: none; border-radius: 4px;
+               background: #245b85; color: white; text-decoration: none; font-size: 14px; }
+        .btn-light { background: #e4e7eb; color: #243b53; }
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 25px; }
+        .stat { background: white; border-radius: 8px; padding: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .stat .label { color: #627d98; font-size: 13px; }
+        .stat .value { font-size: 26px; font-weight: bold; margin-top: 6px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 10px; text-align: right; border-bottom: 1px solid #ddd; }
+        th:first-child, td:first-child { text-align: left; }
+        th { background: #245b85; color: white; }
+        tr.chosen td { background: #e5f5e9; font-weight: bold; }
+        .muted { color: #627d98; font-size: 13px; }
+        code { background: #f0f4f8; padding: 1px 5px; border-radius: 3px; }
+        @media (max-width: 800px) { .stats { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="top">
+        <h1>Как работи препоръката за цена</h1>
+        <div>
+            <a class="btn btn-light" th:href="@{/}">Начало</a>
+            <span th:replace="~{fragments/notifications :: bell}"></span>
+            <a class="btn btn-light" th:href="@{/owner/warehouses}">Моите складове</a>
+        </div>
+    </div>
+
+    <div class="stats">
+        <div class="stat">
+            <div class="label">Складове за обучение</div>
+            <div class="value" th:text="${sampleCount}">0</div>
+        </div>
+        <div class="stat">
+            <div class="label">от тях от системата</div>
+            <div class="value" th:text="${systemCount}">0</div>
+        </div>
+        <div class="stat">
+            <div class="label">примерни (синтетични)</div>
+            <div class="value" th:text="${referenceCount}">0</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Метод</h2>
+        <p>
+            Използва се регресия по <b>k-те най-близки съседи (k-NN)</b>. За склада, на който търсим цена,
+            се намират <b th:text="${chosenK}">3</b>-те най-подобни склада и неговата <b>цена на м²</b> се изчислява
+            като тяхна среднопретеглена цена на м² (по-подобните тежат повече). Накрая цената на м² се умножава по площта.
+        </p>
+        <p>
+            Подобието се определя от разстояние по четири признака, всеки сведен до 0..1:
+            площ (по логаритъм, тегло <span th:text="${weightArea}"></span>),
+            височина (тегло <span th:text="${weightHeight}"></span>),
+            категория (еднаква/различна, тегло <span th:text="${weightCategory}"></span>) и
+            климат (сух → отопляем → хладилен → фризер, тегло <span th:text="${weightClimate}"></span>).
+        </p>
+        <p class="muted">
+            Данните са всички складове в системата с площ и цена плюс примерен набор
+            (<code>resources/ai/reference-warehouse-prices.csv</code>), за да има от какво да се учи моделът,
+            докато складовете в системата са малко.
+        </p>
+    </div>
+
+    <div class="card">
+        <h2>Проверка на модела (leave-one-out)</h2>
+        <p>
+            Всеки склад последователно се „скрива“, цената му се прогнозира от останалите и се сравнява с истинската.
+            Сравнението е с базов метод, който не гледа нищо освен площта: <i>медианна цена на м² × площ</i>.
+        </p>
+        <table>
+            <thead>
+            <tr>
+                <th>k (брой съседи)</th>
+                <th>Средна грешка (лв.)</th>
+                <th>Средна грешка (%)</th>
+                <th>Базов метод (лв.)</th>
+                <th>Базов метод (%)</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="e : ${evaluations}" th:classappend="${e.k() == chosenK} ? 'chosen'">
+                <td th:text="${e.k()} + (${e.k() == chosenK} ? ' (използва се)' : '')"></td>
+                <td th:text="${#numbers.formatDecimal(e.meanAbsoluteError(), 1, 0)}"></td>
+                <td th:text="${#numbers.formatDecimal(e.meanAbsolutePercentError(), 1, 1)} + ' %'"></td>
+                <td th:text="${#numbers.formatDecimal(e.baselineAbsoluteError(), 1, 0)}"></td>
+                <td th:text="${#numbers.formatDecimal(e.baselineAbsolutePercentError(), 1, 1)} + ' %'"></td>
+            </tr>
+            </tbody>
+        </table>
+        <p class="muted">Резултатите се изчисляват наново при всяко отваряне на страницата, така че отразяват текущите складове в системата.</p>
+    </div>
+
+</div>
+</body>
+</html>
