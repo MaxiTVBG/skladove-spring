@@ -9,10 +9,10 @@
         h1 { color: #243b53; }
         .container { max-width: 1200px; margin: auto; }
         .card { background: white; padding: 25px; margin-bottom: 25px; border-radius: 8px;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
         .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
         .btn { display: inline-block; padding: 10px 18px; border: none; border-radius: 4px;
-               background: #245b85; color: white; text-decoration: none; cursor: pointer; }
+            background: #245b85; color: white; text-decoration: none; cursor: pointer; }
         .btn:hover { background: #17466d; }
         .btn-small { padding: 6px 12px; font-size: 14px; }
         .btn-light { background: #e4e7eb; color: #243b53; }
@@ -25,7 +25,7 @@
         .MAINTENANCE { background: #e8eefc; color: #2f4fa3; }
         .INACTIVE { background: #eeeeee; color: #555; }
         .chip { display: inline-block; background: #e8eefc; color: #2f4fa3; padding: 3px 9px;
-                border-radius: 10px; font-size: 13px; margin: 0 4px 4px 0; }
+            border-radius: 10px; font-size: 13px; margin: 0 4px 4px 0; }
         .no-agent { color: #9a5b00; font-size: 13px; }
         .success { color: #187a37; background: #e5f5e9; padding: 12px; border-radius: 4px; }
         .error { color: #a32121; background: #fde8e8; padding: 12px; border-radius: 4px; }
@@ -39,6 +39,7 @@
         <h1>Моите складове</h1>
         <div>
             <a class="btn btn-light" th:href="@{/}">Начало</a>
+            <a class="btn btn-light" th:href="@{/profile}">👤 Моят профил</a>
             <span th:replace="~{fragments/notifications :: bell}"></span>
             <a class="btn btn-light" th:href="@{/owner/rentals}">Заявки за наем</a>
             <a class="btn btn-light" th:href="@{/owner/ratings}">Оценка на агенти</a>
@@ -47,6 +48,7 @@
             <a class="btn" th:href="@{/owner/warehouses/new}">+ Добави склад</a>
         </div>
     </div>
+
     <p>Собственик: <b sec:authentication="name"></b></p>
 
     <p class="success" th:if="${successMessage}" th:text="${successMessage}"></p>
