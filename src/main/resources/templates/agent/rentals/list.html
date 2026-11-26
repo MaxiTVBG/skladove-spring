@@ -10,10 +10,10 @@
         h2 { font-size: 20px; margin-top: 0; }
         .container { max-width: 1200px; margin: auto; }
         .card { background: white; padding: 25px; margin-bottom: 25px; border-radius: 8px;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
         .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
         .btn { display: inline-block; padding: 10px 18px; border: none; border-radius: 4px;
-               background: #245b85; color: white; text-decoration: none; cursor: pointer; }
+            background: #245b85; color: white; text-decoration: none; cursor: pointer; }
         .btn:hover { background: #17466d; }
         .btn-small { padding: 6px 12px; font-size: 14px; }
         .btn-light { background: #e4e7eb; color: #243b53; }
@@ -39,18 +39,20 @@
         <h1>Наеми</h1>
         <div>
             <a class="btn btn-light" th:href="@{/}">Начало</a>
+            <a class="btn btn-light" th:href="@{/profile}">👤 Моят профил</a>
             <span th:replace="~{fragments/notifications :: bell}"></span>
             <a class="btn btn-light" th:href="@{/reports/available}">Справка: налични складове</a>
             <a class="btn btn-light" th:href="@{/agent/ai/recommend}">Препоръка на склад (AI)</a>
             <a class="btn" th:href="@{/agent/report}">Моята справка</a>
         </div>
     </div>
+
     <p>Складов агент: <b sec:authentication="name"></b></p>
 
     <p class="success" th:if="${successMessage}" th:text="${successMessage}"></p>
     <p class="error" th:if="${errorMessage}" th:text="${errorMessage}"></p>
 
-    <!-- 1. Складове, към които агентът е назначен от собственика (задача №11) -->
+    <!-- 1. Складове, към които агентът е назначен от собственика -->
     <div class="card">
         <h2>Складове, които обслужвам</h2>
         <p class="empty" th:if="${#lists.isEmpty(warehouses)}">
@@ -86,7 +88,7 @@
                     </span>
                 </td>
                 <td>
-                    <!-- Нает склад също може да се заяви за бъдещ период; ремонт/неактивен не може. -->
+                    <!-- Нает склад също може да се заяви за бъдещ период. -->
                     <a class="btn btn-small"
                        th:if="${w.status?.name() == 'AVAILABLE' or w.status?.name() == 'RENTED'}"
                        th:href="@{/agent/rentals/new(warehouseId=${w.id})}">Нова заявка</a>
