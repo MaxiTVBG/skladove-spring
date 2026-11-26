@@ -9,6 +9,9 @@ erDiagram
   app_user ||--o{ rental_contract : "създава (agent_id)"
   app_user |o--o{ rental_contract : "решава (decided_by_id)"
   app_user ||--o{ notification : "получава"
+  app_user ||--o{ agent_rating : "оценяван (agent_id)"
+  app_user ||--o{ agent_rating : "оценява (owner_id)"
+  rental_contract ||--o| agent_rating : "оценка (rental_contract_id)"
 
   app_user {
     bigint id PK
@@ -60,5 +63,14 @@ erDiagram
     varchar type "NEW_RENTAL_REQUEST / WAREHOUSE_RENTED / CONTRACT_EXPIRING"
     varchar message
     boolean read
+    timestamp created_at
+  }
+  agent_rating {
+    bigint id PK
+    bigint agent_id FK
+    bigint owner_id FK
+    bigint rental_contract_id UK,FK "уникално за договор"
+    int score "1..5"
+    varchar comment
     timestamp created_at
   }

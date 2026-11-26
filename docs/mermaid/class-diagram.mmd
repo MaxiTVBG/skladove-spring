@@ -58,6 +58,17 @@ classDiagram
     -String decisionNote
     #onCreate() void
   }
+  class AgentRating {
+    <<entity>>
+    -Long id
+    -AppUser agent
+    -AppUser owner
+    -RentalContract rentalContract
+    -Integer score
+    -String comment
+    -LocalDateTime createdAt
+    #onCreate() void
+  }
 
   class Role {
     <<enumeration>>
@@ -93,6 +104,9 @@ classDiagram
   AppUser "1" -- "0..*" RentalContract : създава заявка (agent)
   AppUser "0..1" -- "0..*" RentalContract : одобрява / отхвърля (decidedBy)
   AppUser "1" -- "0..*" Notification : получава (recipient)
+  AppUser "1" -- "0..*" AgentRating : получава оценка (agent)
+  AppUser "1" -- "0..*" AgentRating : оценява (owner)
+  RentalContract "1" -- "0..1" AgentRating : оценка (rentalContract)
 
   AppUser ..> Role
   Warehouse ..> WarehouseStatus

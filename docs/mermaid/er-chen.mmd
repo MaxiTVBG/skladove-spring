@@ -9,6 +9,7 @@ flowchart TB
   WH[СКЛАД]
   RC[ДОГОВОР ЗА НАЕМ]
   NT[ИЗВЕСТИЕ]
+  AR[ОЦЕНКА НА АГЕНТ]
 
   %% ---------- Връзки ----------
   owns{притежава}
@@ -17,6 +18,8 @@ flowchart TB
   decides{одобрява /<br/>отхвърля}
   covers{отнася се за}
   receives{получава}
+  rates{оценява}
+  rated_for{за договор}
 
   USER ---|1| owns ---|N| WH
   USER ---|M| serves ---|N| WH
@@ -24,6 +27,8 @@ flowchart TB
   USER ---|1| decides ---|N| RC
   WH ---|1| covers ---|N| RC
   USER ---|1| receives ---|N| NT
+  USER ---|1| rates ---|N| AR
+  RC ---|1| rated_for ---|1| AR
 
   %% ---------- Атрибути ----------
   u1([<u>id</u>]) --- USER
@@ -63,12 +68,17 @@ flowchart TB
   NT --- n4([прочетено])
   NT --- n5([дата])
 
+  AR --- r1([<u>id</u>])
+  AR --- r2([оценка 1..5])
+  AR --- r3([коментар])
+  AR --- r4([дата])
+
   %% ---------- Стилове ----------
   classDef entity fill:#2F5597,stroke:#1F3864,stroke-width:2px,color:#fff,font-weight:bold
   classDef rel fill:#FFE699,stroke:#BF9000,stroke-width:1.5px,color:#000
   classDef attr fill:#F2F2F2,stroke:#7F7F7F,color:#000
   classDef key fill:#FFF2CC,stroke:#BF9000,stroke-width:2px,color:#000,font-weight:bold
-  class USER,WH,RC,NT entity
-  class owns,serves,creates,decides,covers,receives rel
-  class u2,u3,u4,u5,u6,u7,u8,u9,w2,w3,w4,w5,w6,w7,w8,w9,w10,c2,c3,c4,c5,c6,c7,c8,c9,n2,n3,n4,n5 attr
-  class u1,w1,c1,n1 key
+  class USER,WH,RC,NT,AR entity
+  class owns,serves,creates,decides,covers,receives,rates,rated_for rel
+  class u2,u3,u4,u5,u6,u7,u8,u9,w2,w3,w4,w5,w6,w7,w8,w9,w10,c2,c3,c4,c5,c6,c7,c8,c9,n2,n3,n4,n5,r2,r3,r4 attr
+  class u1,w1,c1,n1,r1 key
